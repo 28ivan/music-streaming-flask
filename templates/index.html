@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Musical - Acceso</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 350px; }
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: none; cursor: pointer; font-size: 16px; color: #555; }
+        .tab-btn.active { border-bottom: 2px solid #007bff; color: #007bff; font-weight: bold; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button[type="submit"] { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button[type="submit"]:hover { background-color: #0056b3; }
+        .hidden { display: none; }
+        .message { margin-top: 15px; padding: 10px; border-radius: 4px; font-size: 14px; text-align: center; }
+        .msg-error { background-color: #f8d7da; color: #721c24; }
+        .msg-success { background-color: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showForm('login')">Iniciar Sesión</button>
+        <button class="tab-btn" onclick="showForm('register')">Registrarse</button>
+    </div>
+
+    <div id="msg-box" class="message hidden"></div>
+
+    <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="login-email" required>
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="login-password" required>
+        </div>
+        <button type="submit">Entrar</button>
+    </form>
+
+    <form id="form-register" class="hidden" onsubmit="handleRegister(event)">
+        <div class="form-group">
+            <label>Usuario</label>
+            <input type="text" id="reg-username" required>
+        </div>
+        <div class="form-group">
+            <label>Nombre Completo</label>
+            <input type="text" id="reg-fullname" required>
+        </div>
+        <div class="form-group">
+            <label>País</label>
+            <input type="text" id="reg-country" required>
+        </div>
+        <div class="form-group">
+            <label>Teléfono</label>
+            <input type="tel" id="reg-phone" required>
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="reg-email" required>
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="reg-password" required>
+        </div>
+        <button type="submit">Crear Cuenta</button>
+    </form>
+</div>
+
+<div id="private-area" class="hidden" style="width: 800px; max-width: 95%; margin: 20px auto;">
+
+    <nav style="background: #343a40; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; color: white;">
+        <div style="font-weight: bold; font-size: 18px;">🎵 App Musical</div>
+        <div>
+            <button onclick="showSection('catalog')" style="margin-right: 10px; padding: 8px 15px; background: #495057;">Catálogo</button>
+            <button onclick="showSection('profile')" style="margin-right: 15px; padding: 8px 15px; background: #17a2b8;">Mi Perfil</button>
+            <button onclick="logout()" style="padding: 8px 15px; background: #dc3545;">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <div id="catalog-section" class="card" style="width: 100%;">
+        <h2>Catálogo Musical</h2>
+        <div id="songs-container"></div>
+    </div>
+
+    <div id="profile-section" class="card hidden" style="width: 100%;">
+        <h2>Mi Información Personal</h2>
+        <div id="profile-container" style="background: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #ddd;">
+            <p>Cargando datos...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variable global para guardar el ID del usuario logueado
+    let currentUserId = null;
+
+    // Lógica SPA para alternar formularios iniciales
+    function showForm(formType) {
+        document.getElementById('form-login').classList.add('hidden');
+        document.getElementById('form-register').classList.add('hidden');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('msg-box').classList.add('hidden');
+
+        if(formType === 'login') {
+            document.getElementById('form-login').classList.remove('hidden');
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        } else {
+            document.getElementById('form-register').classList.remove('hidden');
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        }
+    }
+
+    // Mostrar mensajes en pantalla
+    function showMessage(text, isError) {
+        const msgBox = document.getElementById('msg-box');
+        msgBox.textContent = text;
+        msgBox.className = 'message ' + (isError ? 'msg-error' : 'msg-success');
+        msgBox.classList.remove('hidden');
+    }
+
+    // Petición a la API para Registrarse
+    async function handleRegister(e) {
+        e.preventDefault();
+        const data = {
+            username: document.getElementById('reg-username').value,
+            full_name: document.getElementById('reg-fullname').value,
+            country: document.getElementById('reg-country').value,
+            phone: document.getElementById('reg-phone').value, // Ahora capturamos el teléfono
+            email: document.getElementById('reg-email').value,
+            password: document.getElementById('reg-password').value
+        };
+
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+
+            if(res.ok) {
+                showMessage(result.message, false);
+                document.getElementById('form-register').reset();
+            } else {
+                showMessage(result.error, true);
+            }
+        } catch (error) { showMessage("Error de conexión con el servidor", true); }
+    }
+
+    // Petición a la API para Iniciar Sesión
+    async function handleLogin(e) {
+        e.preventDefault();
+        const data = {
+            email: document.getElementById('login-email').value,
+            password: document.getElementById('login-password').value
+        };
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+
+            if(res.ok) {
+                // Guardamos el ID del usuario en sesión
+                currentUserId = result.user.id;
+
+                // Ocultar la tarjeta de login y mostrar el área privada
+                document.querySelector('.card').classList.add('hidden');
+                document.getElementById('private-area').classList.remove('hidden');
+
+                // Cargar la sección del catálogo por defecto
+                showSection('catalog');
+            } else {
+                showMessage(result.error, true);
+            }
+        } catch (error) { showMessage("Error de conexión con el servidor", true); }
+    }
+
+    // Función para alternar entre Catálogo y Perfil
+    function showSection(section) {
+        document.getElementById('catalog-section').classList.add('hidden');
+        document.getElementById('profile-section').classList.add('hidden');
+
+        if (section === 'catalog') {
+            document.getElementById('catalog-section').classList.remove('hidden');
+            loadCatalog();
+        } else if (section === 'profile') {
+            document.getElementById('profile-section').classList.remove('hidden');
+            loadProfile();
+        }
+    }
+
+    // Petición a la API para obtener y pintar las canciones
+    async function loadCatalog() {
+        const container = document.getElementById('songs-container');
+        container.innerHTML = "<p>Cargando canciones...</p>";
+
+        try {
+            const res = await fetch('/api/songs');
+            const songs = await res.json();
+
+            if (songs.length === 0) {
+                container.innerHTML = "<p>El catálogo está vacío. Un administrador debe añadir canciones.</p>";
+                return;
+            }
+
+            container.innerHTML = "";
+
+            songs.forEach(song => {
+                const songDiv = document.createElement('div');
+                songDiv.style.cssText = "padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px; background: #fafafa;";
+
+                const min = Math.floor(song.duration / 60);
+                const sec = song.duration % 60;
+                const duration = song.duration ? `${min}:${sec.toString().padStart(2, '0')}` : 'N/A';
+
+                songDiv.innerHTML = `
+                    <h3 style="margin: 0 0 5px 0; color: #333;">${song.title}</h3>
+                    <p style="margin: 0; font-size: 14px; color: #666;">
+                        <strong>Artista:</strong> ${song.artist} |
+                        <strong>Álbum:</strong> ${song.album || 'N/A'} |
+                        <strong>Duración:</strong> ${duration}
+                    </p>
+                `;
+                container.appendChild(songDiv);
+            });
+        } catch (error) {
+            container.innerHTML = "<p style='color: red;'>Error al cargar el catálogo.</p>";
+        }
+    }
+
+    // Petición a la API para cargar el perfil del usuario
+    async function loadProfile() {
+        const container = document.getElementById('profile-container');
+        container.innerHTML = "<p>Cargando datos...</p>";
+
+        try {
+            const res = await fetch(`/api/profile/${currentUserId}`);
+            const user = await res.json();
+
+            if(res.ok) {
+                const date = new Date(user.created_at).toLocaleDateString('es-ES');
+
+                container.innerHTML = `
+                    <p><strong>Usuario:</strong> @${user.username}</p>
+                    <p><strong>Nombre Completo:</strong> ${user.full_name}</p>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>Teléfono:</strong> ${user.phone}</p>
+                    <p><strong>País:</strong> ${user.country}</p>
+                    <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+                    <p><strong>Rol en el sistema:</strong> <span style="background: #007bff; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px;">${user.role}</span></p>
+                    <p><strong>Miembro desde:</strong> ${date}</p>
+                `;
+            } else {
+                container.innerHTML = `<p style="color: red;">${user.error}</p>`;
+            }
+        } catch (error) {
+            container.innerHTML = "<p style='color: red;'>Error al cargar el perfil.</p>";
+        }
+    }
+
+    // Función para cerrar sesión y volver al login
+    function logout() {
+        currentUserId = null;
+        document.getElementById('private-area').classList.add('hidden');
+        document.querySelector('.card').classList.remove('hidden');
+        document.getElementById('form-login').reset();
+        document.getElementById('msg-box').classList.add('hidden');
+    }
+</script>
+</body>
+</html>
