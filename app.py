@@ -122,5 +122,36 @@ def handle_favorites(user_id):
         return jsonify({"message": "Añadido a favoritos"}), 201
 
 
+## Para la US 5. Obtener usuarios pendientes de aprobacion
+@app.route('/api/admin/pending_users', methods=['GET'])
+def get_pending_users():
+    conn = get_db_connection()
+    # Buscamos usuarios no aprobados y que tengan rol USER
+    users = conn.execute('''
+        SELECT id, username, email, name, surname1, created_at 
+        FROM users 
+        WHERE is_approved = 0 AND role = 'USER'
+    ''').fetchall()
+    conn.close()
+    return jsonify([dict(u) for u in users]), 200
+
+##US 5. Aprobar y denegar cuentas
+@app.route('/api/admin/approve/<int:user_id>', methods=['POST'])
+def approve_user(user_id):
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET is_approved = 1 WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Usuario aprobado con éxito"}), 200
+
+@app.route('/api/admin/reject/<int:user_id>', methods=['DELETE'])
+def reject_user(user_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Petición denegada y usuario eliminado"}), 200
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

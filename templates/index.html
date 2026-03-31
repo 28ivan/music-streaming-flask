@@ -189,6 +189,15 @@
             </button>
         </form>
     </div>
+
+    <div class="panel-oscuro" style="margin-top: 20px;">
+        <h3 style="text-align: left;">Usuarios Pendientes de Aprobación</h3>
+        <div id="list-pending-users">
+            <p>Cargando usuarios...</p>
+        </div>
+    </div>
+
+
     <div style="margin-top: 20px;">
         <img src="/static/btnVolver.png" class="btn-volver" onclick="nav('view-catalog')">
     </div>
@@ -215,6 +224,7 @@
         document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
         document.getElementById(viewId).classList.remove('hidden');
         if(viewId === 'view-catalog') loadCatalog();
+        if(viewId === 'view-admin') loadPendingUsers();
     }
 
     async function apiCall(endpoint, method = 'GET', body = null) {
@@ -332,6 +342,71 @@
 
     async function deleteSong(id) {
         if(confirm("¿Borrar canción?")) { await apiCall(`/api/songs/${id}`, 'DELETE'); loadCatalog(); }
+    }
+
+
+    async function loadPendingUsers() {
+        const container = document.getElementById('list-pending-users');
+        const res = await apiCall('/api/admin/pending_users');
+
+        if (res.ok) {
+            if (res.data.length === 0) {
+                container.innerHTML = "<p>No hay usuarios pendientes de aprobación.</p>";
+                return;
+            }
+
+            let html = `
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--gold); text-align: left;">
+                            <th style="padding: 10px;">Usuario</th>
+                            <th style="padding: 10px;">Email</th>
+                            <th style="padding: 10px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            res.data.forEach(u => {
+                html += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <td style="padding: 10px;">${u.username} (${u.name})</td>
+                        <td style="padding: 10px;">${u.email}</td>
+                        <td style="padding: 10px; display: flex; gap: 10px;">
+                            <button onclick="approveUser(${u.id})" class="btn-solid" style="width: auto; padding: 5px 15px; font-size: 12px;">APROBAR</button>
+                            <button onclick="rejectUser(${u.id})" class="btn-outline" style="width: auto; padding: 5px 15px; font-size: 12px; border-color: #ff4d4d; color: #ff4d4d;">RECHAZAR</button>
+                        </td>
+                    </tr>`;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = "<p>Error al cargar usuarios.</p>";
+        }
+    } // <-- Aquí se cierra loadPendingUsers
+
+    async function approveUser(userId) {
+        if (confirm("¿Estás seguro de que quieres aprobar a este usuario?")) {
+            const res = await apiCall(`/api/admin/approve/${userId}`, 'POST');
+            if (res.ok) {
+                alert(res.data.message);
+                loadPendingUsers();
+            } else {
+                alert("Error al aprobar al usuario");
+            }
+        }
+    } // <-- Aquí se cierra approveUser
+
+    async function rejectUser(userId) {
+        if (confirm("¿Estás seguro de que quieres denegar el acceso? El usuario será eliminado.")) {
+            const res = await apiCall(`/api/admin/reject/${userId}`, 'DELETE');
+            if (res.ok) {
+                alert(res.data.message);
+                loadPendingUsers();
+            } else {
+                alert("Error al eliminar al usuario");
+            }
+        }
     }
 </script>
 </body>
