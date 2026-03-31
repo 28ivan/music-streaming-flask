@@ -1,162 +1,126 @@
 from flask import Flask, request, jsonify, render_template
-from flask import Flask, request, jsonify
 from flask_cors import CORS
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-# Permitir peticiones desde el Frontend (CORS)
 CORS(app)
-
-# Ruta a la base de datos que creamos en el paso anterior
 DATABASE = 'database/music.sqlite'
-
-
-# ==========================================================
-# ENDPOINT: Servir el Frontend (SPA)
-# ==========================================================
-@app.route('/')
-def index():
-    # Flask buscará automáticamente este archivo en la carpeta 'templates'
-    return render_template('index.html')
 
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
-    # Forzar el soporte de claves foráneas por cada conexión
     conn.execute('PRAGMA foreign_keys = ON;')
     return conn
 
 
-# ==========================================================
-# ENDPOINT: Registro de usuarios
-# ==========================================================
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
-    username = data.get('username')
-    email = data.get('email')
-    full_name = data.get('full_name')
-    country = data.get('country')
-    phone = data.get('phone') # Recuperamos el teléfono
-    password = data.get('password')
-
-    # Añadimos 'phone' a la validación de campos obligatorios
-    if not username or not email or not password or not full_name or not country or not phone:
-        return jsonify({"error": "Todos los campos son obligatorios"}), 400
-
-    password_hash = generate_password_hash(password)
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
     try:
-        # Añadimos 'phone' a la consulta SQL
-        cursor.execute(
-            'INSERT INTO users (username, email, full_name, country, phone, password_hash) VALUES (?, ?, ?, ?, ?, ?)',
-            (username, email, full_name, country, phone, password_hash)
-        )
+        password_hash = generate_password_hash(data['password'])
+        profile_pic = data.get('profile_pic', '/static/fotoPersona.png')
+
+        conn = get_db_connection()
+        conn.execute('''
+                     INSERT INTO users (email, username, password_hash, name, surname1, surname2, birth_date,
+                                        description, profile_pic)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ''', (data['email'], data['username'], password_hash, data['name'], data['surname1'],
+                           data.get('surname2', ''), data['birth_date'], data.get('description', ''), profile_pic))
         conn.commit()
-        return jsonify({"message": "Registro exitoso. Tu cuenta está pendiente de aprobación."}), 201
-    except sqlite3.IntegrityError:
-        return jsonify({"error": "El nombre de usuario o correo ya están registrados."}), 409
-    finally:
         conn.close()
+        # Modificamos el mensaje para que el usuario sepa qué ocurre
+        return jsonify(
+            {"message": "Registro exitoso. Tu cuenta está pendiente de aprobación por un administrador."}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "Email o Usuario ya registrados"}), 409
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
-# ==========================================================
-# ENDPOINT: Inicio de sesión
-# ==========================================================
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-
-    if not email or not password:
-        return jsonify({"error": "Faltan credenciales"}), 400
-
     conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Buscar al usuario por su email
-    user = cursor.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+    user = conn.execute('SELECT * FROM users WHERE email = ?', (data.get('email'),)).fetchone()
     conn.close()
 
-    # Validar si el usuario existe
-    if user is None:
-        return jsonify({"error": "Credenciales incorrectas"}), 401
+    if user and check_password_hash(user['password_hash'], data.get('password')):
+        # RESTAURADO: Validación de cuenta aprobada
+        if user['is_approved'] == 0:
+            return jsonify({"error": "Acceso denegado: Tu cuenta aún debe ser aprobada por un administrador."}), 403
 
-    # Validar contraseña
-    if not check_password_hash(user['password_hash'], password):
-        return jsonify({"error": "Credenciales incorrectas"}), 401
-
-    # VALIDACIÓN CLAVE: Aprobación manual
-    if user['is_approved'] == 0:
-        return jsonify({"error": "Acceso denegado: Tu cuenta aún debe ser aprobada por un administrador."}), 403
-
-    # Si todos es correcto, devolver éxito (Aquí idealmente devolveríamos un JWT)
-    return jsonify({
-        "message": "Login exitoso",
-        "user": {
-            "id": user['id'],
-            "username": user['username'],
-            "role": user['role']
-        }
-    }), 200
+        return jsonify({"message": "Login exitoso", "user": dict(user)}), 200
+    return jsonify({"error": "Credenciales incorrectas"}), 401
 
 
-# ==========================================================
-# ENDPOINT: Obtener el catálogo general de canciones
-# ==========================================================
-@app.route('/api/songs', methods=['GET'])
-def get_songs():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Consultamos todas las canciones
-    songs = cursor.execute('SELECT * FROM songs').fetchall()
-    conn.close()
-
-    # Convertimos las filas de SQLite en una lista de diccionarios (JSON)
-    songs_list = []
-    for song in songs:
-        songs_list.append({
-            "id": song['id'],
-            "title": song['title'],
-            "artist": song['artist'],
-            "album": song['album'],
-            "duration": song['duration_seconds'],
-            "release_date": song['release_date']
-        })
-
-    return jsonify(songs_list), 200
-
-
-# ==========================================================
-# ENDPOINT: Obtener Perfil de Usuario
-# ==========================================================
 @app.route('/api/profile/<int:user_id>', methods=['GET'])
-def get_profile(user_id):
+def profile(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Añadimos 'phone' a la lista de columnas seleccionadas
-    user = cursor.execute('''
-                          SELECT username, email, full_name, country, phone, role, created_at
-                          FROM users
-                          WHERE id = ?
-                          ''', (user_id,)).fetchone()
-
+    user = conn.execute(
+        'SELECT email, username, name, surname1, surname2, birth_date, description, role, profile_pic FROM users WHERE id = ?',
+        (user_id,)).fetchone()
     conn.close()
+    return jsonify(dict(user)) if user else (jsonify({"error": "No encontrado"}), 404)
 
-    if user is None:
-        return jsonify({"error": "Usuario no encontrado"}), 404
 
-    return jsonify(dict(user)), 200
+@app.route('/api/songs', methods=['GET', 'POST'])
+def handle_songs():
+    conn = get_db_connection()
+    if request.method == 'GET':
+        songs = conn.execute('SELECT * FROM songs').fetchall()
+        conn.close()
+        return jsonify([dict(s) for s in songs]), 200
+
+    if request.method == 'POST':
+        data = request.get_json()
+        conn.execute('INSERT INTO songs (title, artist, album, duration_seconds) VALUES (?, ?, ?, ?)',
+                     (data['title'], data['artist'], data.get('album'), data.get('duration_seconds')))
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "Canción añadida"}), 201
+
+
+@app.route('/api/songs/<int:song_id>', methods=['DELETE'])
+def delete_song(song_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM songs WHERE id = ?', (song_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Canción eliminada"}), 200
+
+
+@app.route('/api/favorites/<int:user_id>', methods=['GET', 'POST', 'DELETE'])
+def handle_favorites(user_id):
+    conn = get_db_connection()
+    if request.method == 'GET':
+        songs = conn.execute('''
+                             SELECT s.*
+                             FROM songs s
+                                      JOIN favorites f ON s.id = f.song_id
+                             WHERE f.user_id = ?
+                             ''', (user_id,)).fetchall()
+        conn.close()
+        return jsonify([dict(s) for s in songs]), 200
+
+    if request.method == 'POST':
+        data = request.get_json()
+        try:
+            conn.execute('INSERT INTO favorites (user_id, song_id) VALUES (?, ?)', (user_id, data['song_id']))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            pass
+        finally:
+            conn.close()
+        return jsonify({"message": "Añadido a favoritos"}), 201
 
 
 if __name__ == '__main__':
-    # Ejecutar la API en el puerto 5000
     app.run(debug=True, port=5000)
