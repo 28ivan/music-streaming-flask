@@ -22,6 +22,7 @@
         .icon-btn:hover { transform: scale(1.1); }
         .btn-volver { height: 50px; cursor: pointer; transition: 0.2s; }
         .btn-volver:hover { transform: translateX(-5px); }
+        #nav-profile-pic { width: 45px; height: 45px; border-radius: 50%; object-fit: cover;}
 
         /* Inputs Base */
         input, textarea {
@@ -32,8 +33,10 @@
         textarea { border-radius: 15px; resize: none; height: 100%; min-height: 100px; }
 
         button { cursor: pointer; padding: 12px 20px; border-radius: 25px; font-weight: bold; width: 100%; transition: 0.3s; }
-        .btn-solid { background: var(--gold); border: 2px solid var(--gold); color: #000; }
+        .btn-solid { background: var(--gold); border: 2px solid var(--gold); color: white; }
         .btn-outline { background: transparent; border: 2px solid var(--text); color: var(--text); }
+        .btn-outline-gold {background: transparent; border: 2px solid var(--gold);color: white;}
+
 
         /* --- LAYOUT INICIO SESIÓN --- */
         .login-group { margin-bottom: 20px; }
@@ -42,7 +45,7 @@
         /* --- LAYOUT REGISTRO --- */
         .panel-oscuro { background: rgba(30, 20, 0, 0.6); border-radius: 20px; padding: 30px; }
         .profile-container { background: rgba(30, 20, 0, 0.6); border-radius: 20px; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 220px; box-sizing: border-box; }
-        .profile-pic { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; background: white; margin-bottom: 20px; }
+        .profile-pic { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; margin-bottom: 20px; }
 
         /* Flexbox para colocar los inputs idénticos al boceto */
         .flex-row { display: flex; gap: 15px; margin-bottom: 15px; width: 100%; }
@@ -82,7 +85,7 @@
             <input type="password" id="log-password" required>
         </div>
 
-        <button type="submit" class="btn-solid" style="margin-bottom: 40px; margin-top: 10px;">CONTINUAR</button>
+        <button type="submit" class="btn-outline-gold" style="margin-bottom: 40px; color: white; margin-top: 10px;">CONTINUAR</button>
 
         <div style="text-align: center;">
             <p style="font-weight: bold; font-size: 14px;">¿No tienes cuenta?</p>
@@ -100,7 +103,7 @@
     <div style="display: flex; gap: 20px;">
 
         <div class="profile-container">
-            <img src="/static/fotoPersona.png" id="reg-profile-preview" class="profile-pic">
+            <img src="/static/btnPerfil.png" id="reg-profile-preview" class="profile-pic">
             <input type="file" id="file-input" accept="image/*" class="hidden" onchange="previewImage(event)">
             <button type="button" class="btn-outline" style="margin-bottom: 15px; padding: 8px;" onclick="document.getElementById('file-input').click()">Cambiar foto</button>
             <button type="submit" form="form-register" class="btn-solid" style="padding: 8px;">GUARDAR</button>
@@ -145,7 +148,8 @@
         <input type="text" class="search-bar" placeholder="Buscar canción...">
         <div class="nav-icons">
             <img src="/static/btnCancionesFav.png" class="icon-btn" onclick="loadFavorites()">
-            <img src="/static/fotoPersona.png" id="nav-profile-pic" class="icon-btn" style="border-radius: 50%; width: 45px; object-fit: cover;" onclick="loadProfile()">
+            <img src="/static/btnPerfil.png" id="nav-profile-pic" class="icon-btn" onclick="loadProfile()">
+            <img src="/static/btnAniadirCancionAdmin.png" id="btn-add-song" class="icon-btn hidden">
             <img src="/static/btnAdmin.png" id="btn-admin" class="icon-btn hidden" onclick="nav('view-admin')">
             <button onclick="logout()" class="btn-outline" style="padding: 8px 15px; width: auto; font-size: 12px;">SALIR</button>
         </div>
@@ -163,8 +167,8 @@
     </div>
     <div style="display: flex; gap: 20px;">
         <div class="profile-container" style="width: 250px;">
-            <img src="/static/fotoPersona.png" id="profile-view-pic" class="profile-pic">
-            <button class="btn-outline">EDITAR</button>
+            <img src="/static/btnPerfil.png" id="profile-view-pic" class="profile-pic">
+            <button class="btn-outline-gold">EDITAR</button>
         </div>
         <div class="panel-oscuro" style="flex: 1;" id="profile-data">
             </div>
@@ -174,38 +178,28 @@
     </div>
 </div>
 
-<div id="view-admin" class="view hidden" style="margin-top: 0;">
-    <div class="navbar">
-        <img src="/static/leon-removebg-preview.png" class="logo-nav">
-        <h2>Panel de Administrador</h2>
-    </div>
-    <div class="panel-oscuro">
-        <h3 style="text-align: left;">Añadir Canción al Catálogo</h3>
-        <form id="form-admin" onsubmit="addSong(event)" style="display:flex; gap: 15px; align-items: center;">
-            <input type="text" id="song-title" placeholder="Título" required>
-            <input type="text" id="song-artist" placeholder="Artista" required>
-            <button type="submit" style="background: transparent; border: none; width: auto; padding: 0;">
-                <img src="/static/btnAniadirCancionAdmin.png" style="height: 50px; cursor: pointer;">
-            </button>
-        </form>
+<div id="view-admin" class="view hidden" style="margin-top: 0; max-width: 950px;">
+    <div style="display: flex; align-items: center; margin-bottom: 30px; gap: 20px;">
+        <div class="navbar">
+            <img src="/static/btnAdmin.png" class="logo-nav">
+        </div>
+        <h2 style="font-size: 32px; margin: 0; font-weight: bold;">Administrar Cuentas</h2>
     </div>
 
-    <div class="panel-oscuro" style="margin-top: 20px;">
-        <h3 style="text-align: left;">Usuarios Pendientes de Aprobación</h3>
+    <div class="catalog-container" style="padding: 40px; border-radius: 20px; background: rgba(30, 20, 0, 0.8);">
         <div id="list-pending-users">
             <p>Cargando usuarios...</p>
         </div>
     </div>
 
-
-    <div style="margin-top: 20px;">
-        <img src="/static/btnVolver.png" class="btn-volver" onclick="nav('view-catalog')">
+    <div style="margin-top: 30px; display: flex; justify-content: flex-start;">
+        <img src="/static/btnVolver.png" class="btn-volver" style="height: 60px;" onclick="nav('view-catalog')">
     </div>
 </div>
 
 <script>
     let currentUser = null;
-    let currentProfilePicBase64 = "/static/fotoPersona.png"; // Imagen por defecto
+    let currentProfilePicBase64 = "/static/btnPerfil.png"; // Imagen por defecto
 
     // FUNCIONALIDAD CAMBIAR FOTO
     function previewImage(event) {
@@ -243,7 +237,9 @@
         if (res.ok) {
             currentUser = res.data.user;
             document.getElementById('btn-admin').classList.toggle('hidden', currentUser.role !== 'ADMIN');
-            document.getElementById('nav-profile-pic').src = currentUser.profile_pic || '/static/fotoPersona.png';
+            // NUEVA LÍNEA PARA MOSTRAR/OCULTAR EL BOTÓN '+'
+            document.getElementById('btn-add-song').classList.toggle('hidden', currentUser.role !== 'ADMIN');
+            document.getElementById('nav-profile-pic').src = currentUser.profile_pic || '/static/btnPerfil.png';
             nav('view-catalog');
         } else alert(res.data.error);
     }
@@ -314,7 +310,7 @@
         const res = await apiCall(`/api/profile/${currentUser.id}`);
         if(res.ok) {
             const d = res.data;
-            document.getElementById('profile-view-pic').src = d.profile_pic || '/static/fotoPersona.png';
+            document.getElementById('profile-view-pic').src = d.profile_pic || '/static/btnPerfil.png';
             document.getElementById('profile-data').innerHTML = `
                 <div class="flex-row">
                     <div class="col-1"><input type="text" value="${d.name}" readonly></div>
@@ -344,41 +340,53 @@
         if(confirm("¿Borrar canción?")) { await apiCall(`/api/songs/${id}`, 'DELETE'); loadCatalog(); }
     }
 
-
     async function loadPendingUsers() {
         const container = document.getElementById('list-pending-users');
         const res = await apiCall('/api/admin/pending_users');
 
         if (res.ok) {
             if (res.data.length === 0) {
-                container.innerHTML = "<p>No hay usuarios pendientes de aprobación.</p>";
+                container.innerHTML = "<p style='text-align: center; color: white; font-weight: bold;'>No hay usuarios pendientes de aprobación.</p>";
                 return;
             }
 
+            // Creamos el grid de 2 columnas con la clase de scroll
             let html = `
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                    <thead>
-                        <tr style="border-bottom: 1px solid var(--gold); text-align: left;">
-                            <th style="padding: 10px;">Usuario</th>
-                            <th style="padding: 10px;">Email</th>
-                            <th style="padding: 10px;">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
+                <div class="admin-scroll" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-height: 350px; overflow-y: auto; padding-right: 15px;">`;
 
             res.data.forEach(u => {
+
+                // Lógica condicional para el avatar
+                let avatarHtml = '';
+                if (u.profile_pic && u.profile_pic !== '/static/btnPerfil.png') {
+                    // Si el usuario TIENE foto personalizada: ocupa los 75x75 completos
+                    avatarHtml = `<img src="${u.profile_pic}" style="width: 75px; height: 75px; border-radius: 20px; object-fit: cover; flex-shrink: 0; background: #f2f2f2;">`;
+                } else {
+                    // Si NO tiene foto: caja contenedora de 75x75 y el icono por defecto más pequeño (45x45) centrado
+                    avatarHtml = `
+                        <div style="width: 75px; height: 75px; background: #f2f2f2; border-radius: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <img src="/static/fotoPersona.png" style="width: 45px; height: 45px; object-fit: contain;">
+                        </div>`;
+                }
+
                 html += `
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                        <td style="padding: 10px;">${u.username} (${u.name})</td>
-                        <td style="padding: 10px;">${u.email}</td>
-                        <td style="padding: 10px; display: flex; gap: 10px;">
-                            <button onclick="approveUser(${u.id})" class="btn-solid" style="width: auto; padding: 5px 15px; font-size: 12px;">APROBAR</button>
-                            <button onclick="rejectUser(${u.id})" class="btn-outline" style="width: auto; padding: 5px 15px; font-size: 12px; border-color: #ff4d4d; color: #ff4d4d;">RECHAZAR</button>
-                        </td>
-                    </tr>`;
+                    <div style="display: flex; align-items: center; gap: 10px;">
+
+                        ${avatarHtml}
+
+                        <div style="background: #f2f2f2; color: #000; border-radius: 20px; height: 75px; display: flex; align-items: center; padding: 0 15px; flex: 1; font-weight: bold; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${u.username}
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 5px; flex-shrink: 0;">
+                            <img src="/static/btnAniadircancion.png" class="icon-btn" style="width: 35px; height: 35px; background: #f2f2f2; border-radius: 50%; padding: 4px; box-sizing: border-box;" onclick="approveUser(${u.id})">
+                            <img src="/static/btnBasura.png" class="icon-btn" style="width: 35px; height: 35px; background: #f2f2f2; border-radius: 50%; padding: 4px; box-sizing: border-box;" onclick="rejectUser(${u.id})">
+                        </div>
+
+                    </div>`;
             });
 
-            html += `</tbody></table>`;
+            html += `</div>`;
             container.innerHTML = html;
         } else {
             container.innerHTML = "<p>Error al cargar usuarios.</p>";

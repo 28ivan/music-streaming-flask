@@ -12,7 +12,7 @@ CREATE TABLE users (
     birth_date TEXT NOT NULL,
     description TEXT,
 
-    profile_pic TEXT DEFAULT '/static/fotoPersona.png',
+    profile_pic TEXT DEFAULT '/static/btnPerfil.png',
 
     role TEXT NOT NULL DEFAULT 'USER' CHECK(role IN ('USER', 'ADMIN')),
     -- RESTAURADO: Campo de aprobación manual (por defecto 0)
