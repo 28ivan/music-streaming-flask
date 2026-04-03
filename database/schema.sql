@@ -25,7 +25,11 @@ CREATE TABLE songs (
     title TEXT NOT NULL,
     artist TEXT NOT NULL,
     album TEXT,
-    duration_seconds INTEGER
+    duration_seconds INTEGER,
+    track_number INTEGER,
+    release_year INTEGER,
+    song_description TEXT,
+    cover_pic TEXT,
 );
 
 CREATE TABLE favorites (
