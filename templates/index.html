@@ -77,10 +77,14 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.5);
         }
 
+        .song-card:hover {
+            z-index: 20; /* Trae la tarjeta y sus botones al frente de la cuadrícula */
+        }
+
         .action-btn-wrapper {
             position: absolute;
             bottom: -15px;
-            left: -90px;
+            left: -85px;
             background: transparent;
             border: none;
             padding: 0;
@@ -94,7 +98,7 @@
         .admin-delete-btn {
             position: absolute;
             bottom: -15px; /* Mismo valor que el + para que estén a la misma altura */
-            right: -90px;  /* Lo pega a la esquina derecha */
+            right: -85px;  /* Lo pega a la esquina derecha */
             background: transparent;
             border: none;
             padding: 0;
