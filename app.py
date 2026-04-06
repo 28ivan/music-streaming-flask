@@ -128,7 +128,7 @@ def get_pending_users():
     conn = get_db_connection()
     # Buscamos usuarios no aprobados y que tengan rol USER
     users = conn.execute('''
-        SELECT id, username, email, name, surname1, created_at 
+        SELECT id, username, email, name, surname1, created_at, profile_pic
         FROM users 
         WHERE is_approved = 0 AND role = 'USER'
     ''').fetchall()
