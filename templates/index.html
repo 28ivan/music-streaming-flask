@@ -202,20 +202,29 @@
 </div>
 
 <div id="view-profile" class="view hidden" style="margin-top: 0;">
+
     <div class="navbar">
-        <img src="/static/leon-removebg-preview.png" class="logo-nav">
-        <button class="btn-solid" style="width: auto;" onclick="loadFavorites()">MIS CANCIONES</button>
+        <div style="display: flex; align-items: center;">
+            <img src="/static/leon-removebg-preview.png" class="logo-nav">
+            <h2 id="edit-profile-title" class="hidden" style="margin-left: 20px; font-size: 28px; margin-top: 0; margin-bottom: 0;">Actualiza tu perfil</h2>
+        </div>
+        <button id="btn-mis-canciones" class="btn-solid" style="width: auto;" onclick="loadFavorites()">MIS CANCIONES</button>
     </div>
+
     <div style="display: flex; gap: 20px;">
         <div class="profile-container" style="width: 250px;">
             <img src="/static/btnPerfil.png" id="profile-view-pic" class="profile-pic">
-            <button class="btn-outline-gold">EDITAR</button>
+            <button id="btn-change-pic" class="btn-outline-gold hidden" style="margin-bottom: 15px; padding: 5px 10px; font-size: 14px;" onclick="document.getElementById('profile-file-input').click()">Cambiar foto</button>
+            <input type="file" id="profile-file-input" accept="image/*" class="hidden" onchange="uploadNewProfilePic(event)">
+            <button id="btn-edit-profile" class="btn-outline-gold" onclick="enableEditMode()">EDITAR</button>
+            <button id="btn-save-profile" class="btn-solid hidden" onclick="saveProfile()">GUARDAR</button>
         </div>
         <div class="panel-oscuro" style="flex: 1;" id="profile-data">
-            </div>
+        </div>
     </div>
+
     <div style="margin-top: 20px;">
-        <img src="/static/btnVolver.png" class="btn-volver" onclick="nav('view-catalog')">
+        <img src="/static/btnVolver.png" class="btn-volver" onclick="handleProfileBack()">
     </div>
 </div>
 
@@ -241,6 +250,8 @@
 <script>
     let currentUser = null;
     let currentProfilePicBase64 = "/static/btnPerfil.png"; // Imagen por defecto
+    // NUEVA VARIABLE: Guardará el archivo de imagen hasta que pulsemos GUARDAR
+    let pendingProfilePicFile = null;
 
     // FUNCIONALIDAD CAMBIAR FOTO
     function previewImage(event) {
@@ -373,26 +384,141 @@
     }
 
     async function loadProfile() {
+        pendingProfilePicFile = null; // <-- AÑADIR ESTA LÍNEA
+        // <-- AÑADE ESTA NUEVA LÍNEA PARA VACIAR EL INPUT DE LA FOTO -->
+        document.getElementById('profile-file-input').value = "";
+
         const res = await apiCall(`/api/profile/${currentUser.id}`);
         if(res.ok) {
             const d = res.data;
             document.getElementById('profile-view-pic').src = d.profile_pic || '/static/btnPerfil.png';
+
+            // Añadimos IDs específicos (prof-name, prof-sur1, etc.) a cada input
             document.getElementById('profile-data').innerHTML = `
                 <div class="flex-row">
-                    <div class="col-1"><input type="text" value="${d.name}" readonly></div>
-                    <div class="col-1-5"><input type="text" value="${d.surname1}" readonly></div>
-                    <div class="col-1-5"><input type="text" value="${d.surname2}" readonly></div>
+                    <div class="col-1"><input type="text" id="prof-name" value="${d.name}" readonly></div>
+                    <div class="col-1-5"><input type="text" id="prof-sur1" value="${d.surname1}" readonly></div>
+                    <div class="col-1-5"><input type="text" id="prof-sur2" value="${d.surname2 || ''}" readonly></div>
                 </div>
                 <div class="flex-row">
-                    <div class="col-half"><input type="text" value="${d.username}" readonly></div>
-                    <div class="col-half"><input type="text" value="${d.birth_date}" readonly></div>
+                    <div class="col-half"><input type="text" id="prof-user" value="${d.username}" readonly></div>
+                    <div class="col-half"><input type="date" id="prof-date" value="${d.birth_date}" readonly style="color: white;"></div>
                 </div>
                 <div class="flex-row" style="align-items: stretch;">
-                    <div class="col-half"><input type="email" value="${d.email}" readonly></div>
-                    <div class="col-half"><textarea readonly>${d.description}</textarea></div>
+                    <div class="col-half"><input type="email" id="prof-email" value="${d.email}" readonly></div>
+                    <div class="col-half"><textarea id="prof-desc" readonly>${d.description || ''}</textarea></div>
                 </div>
             `;
+
+            // Reiniciamos los botones al estado de "solo lectura" cada vez que se carga el perfil
+            document.getElementById('btn-edit-profile').classList.remove('hidden');
+            document.getElementById('btn-save-profile').classList.add('hidden');
+            document.getElementById('btn-change-pic').classList.add('hidden'); // NUEVO
+
+            // --- NUEVO: Esconder título y mostrar botón Mis Canciones ---
+            document.getElementById('edit-profile-title').classList.add('hidden');
+            document.getElementById('btn-mis-canciones').classList.remove('hidden');
+
             nav('view-profile');
+        }
+    }
+
+    // MODIFICADA: Ahora solo hace previsualización y guarda el archivo "en pausa"
+    function uploadNewProfilePic(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // 1. Mostrar la nueva foto visualmente de inmediato (Preview)
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('profile-view-pic').src = e.target.result;
+        }
+        reader.readAsDataURL(file);
+
+        // 2. Guardar el archivo en la variable global para enviarlo luego
+        pendingProfilePicFile = file;
+    }
+
+    // NUEVA FUNCIÓN: Flecha de volver inteligente
+    function handleProfileBack() {
+        // Comprobamos si estamos en modo edición (si el botón GUARDAR está visible)
+        const isEditing = !document.getElementById('btn-save-profile').classList.contains('hidden');
+
+        if (isEditing) {
+            pendingProfilePicFile = null; // <-- AÑADIR ESTA LÍNEA
+            // Si estamos editando, cancelamos la edición recargando el perfil (restaura datos originales)
+            loadProfile();
+        } else {
+            // Si solo estamos mirando, volvemos al catálogo general
+            nav('view-catalog');
+        }
+    }
+
+    // NUEVA FUNCIÓN: Quita el bloqueo de los campos
+    function enableEditMode() {
+        const inputs = document.querySelectorAll('#profile-data input, #profile-data textarea');
+        inputs.forEach(input => {
+            // Evitamos que el usuario edite su email y nombre de usuario por seguridad
+            if (input.id !== 'prof-email' && input.id !== 'prof-user') {
+                input.removeAttribute('readonly');
+                input.style.border = "2px solid var(--gold)"; // Resaltamos en dorado lo que se puede editar
+            }
+        });
+        // Ocultamos "EDITAR" y mostramos "GUARDAR"
+        document.getElementById('btn-edit-profile').classList.add('hidden');
+        document.getElementById('btn-save-profile').classList.remove('hidden');
+        document.getElementById('btn-change-pic').classList.remove('hidden'); // NUEVO
+
+        // --- NUEVO: Alternar el título de la cabecera ---
+        document.getElementById('edit-profile-title').classList.remove('hidden');
+        document.getElementById('btn-mis-canciones').classList.add('hidden');
+    }
+
+    // MODIFICADA: Envía los textos y, si hay foto nueva, la sube también
+    async function saveProfile() {
+        const body = {
+            name: document.getElementById('prof-name').value,
+            surname1: document.getElementById('prof-sur1').value,
+            surname2: document.getElementById('prof-sur2').value,
+            birth_date: document.getElementById('prof-date').value,
+            description: document.getElementById('prof-desc').value
+        };
+
+        // 1. Guardar los datos de texto
+        const res = await apiCall(`/api/profile/${currentUser.id}`, 'PUT', body);
+
+        if (res.ok) {
+            // 2. Comprobar si el usuario seleccionó una foto nueva
+            if (pendingProfilePicFile) {
+                const formData = new FormData();
+                formData.append('file', pendingProfilePicFile);
+
+                try {
+                    const picRes = await fetch(`/api/profile/${currentUser.id}/upload-pic`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const picResult = await picRes.json();
+
+                    if (picRes.ok) {
+                        // Actualizar la foto en memoria y en la barra superior
+                        currentUser.profile_pic = picResult.new_pic_url;
+                        document.getElementById('nav-profile-pic').src = currentUser.profile_pic;
+                    } else {
+                        alert("Textos guardados, pero falló la foto: " + picResult.error);
+                    }
+                } catch (error) {
+                    alert("Textos guardados, pero hubo un error de conexión al subir la foto.");
+                }
+            }
+
+            alert("Perfil actualizado correctamente");
+
+            // 3. Limpiar la variable y recargar la vista
+            pendingProfilePicFile = null;
+            loadProfile();
+        } else {
+            alert("Error al actualizar los datos del perfil");
         }
     }
 

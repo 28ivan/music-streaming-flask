@@ -1,11 +1,29 @@
+import base64
+import os
+import uuid
+
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 CORS(app)
 DATABASE = 'database/music.sqlite'
+
+# CONFIGURACIÓN DE SUBIDA DE IMÁGENES
+UPLOAD_FOLDER = 'static/uploads/profiles' # Carpeta donde se guardarán
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'} # Extensiones permitidas
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Asegurar que la carpeta exista al arrancar
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def get_db_connection():
@@ -25,7 +43,36 @@ def register():
     data = request.get_json()
     try:
         password_hash = generate_password_hash(data['password'])
-        profile_pic = data.get('profile_pic', '/static/fotoPersona.png')
+
+        # --- NUEVA LÓGICA: Procesar imagen Base64 a archivo físico ---
+        raw_pic = data.get('profile_pic', '/static/fotoPersona.png')
+        db_pic_path = raw_pic  # Por defecto, la ruta o el Base64
+
+        # Si la imagen viene como texto Base64 (empieza por data:image...)
+        if raw_pic and raw_pic.startswith('data:image'):
+            try:
+                # Separar la cabecera (data:image/png;base64) del contenido real
+                header, encoded = raw_pic.split(",", 1)
+                # Extraer la extensión del archivo (png, jpeg, etc.)
+                ext = header.split(';')[0].split('/')[1]
+
+                # Decodificar el texto a formato binario (imagen real)
+                file_data = base64.b64decode(encoded)
+
+                # Generar un nombre único para evitar que dos usuarios sobrescriban "foto.png"
+                filename = f"reg_{uuid.uuid4().hex[:8]}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+                # Guardar el archivo físicamente en la carpeta
+                with open(filepath, "wb") as f:
+                    f.write(file_data)
+
+                # Actualizar la variable para guardar solo la ruta en SQLite
+                db_pic_path = f"/{UPLOAD_FOLDER}/{filename}"
+            except Exception as e:
+                print(f"Error procesando imagen: {e}")
+                db_pic_path = '/static/fotoPersona.png'  # Fallback si algo falla
+        # -------------------------------------------------------------
 
         conn = get_db_connection()
         conn.execute('''
@@ -33,12 +80,13 @@ def register():
                                         description, profile_pic)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ''', (data['email'], data['username'], password_hash, data['name'], data['surname1'],
-                           data.get('surname2', ''), data['birth_date'], data.get('description', ''), profile_pic))
+                           data.get('surname2', ''), data['birth_date'], data.get('description', ''), db_pic_path))
         conn.commit()
         conn.close()
-        # Modificamos el mensaje para que el usuario sepa qué ocurre
+
         return jsonify(
             {"message": "Registro exitoso. Tu cuenta está pendiente de aprobación por un administrador."}), 201
+
     except sqlite3.IntegrityError:
         return jsonify({"error": "Email o Usuario ya registrados"}), 409
     except Exception as e:
@@ -69,6 +117,93 @@ def profile(user_id):
         (user_id,)).fetchone()
     conn.close()
     return jsonify(dict(user)) if user else (jsonify({"error": "No encontrado"}), 404)
+
+
+# ==========================================================
+# ENDPOINT: Actualizar Perfil de Usuario (CORREGIDO)
+# ==========================================================
+@app.route('/api/profile/<int:user_id>', methods=['PUT'])
+def update_profile(user_id):
+    data = request.get_json()
+
+    # Extraemos los campos exactos que nos manda index.html
+    name = data.get('name')
+    surname1 = data.get('surname1')
+    surname2 = data.get('surname2')
+    birth_date = data.get('birth_date')
+    description = data.get('description')
+
+    # Validación básica (obligatorios según tu schema)
+    if not name or not surname1 or not birth_date:
+        return jsonify({"error": "Nombre, Primer Apellido y Fecha de Nacimiento son obligatorios"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Ejecutamos la actualización SQL con las columnas correctas
+        cursor.execute('''
+                       UPDATE users
+                       SET name        = ?,
+                           surname1    = ?,
+                           surname2    = ?,
+                           birth_date  = ?,
+                           description = ?
+                       WHERE id = ?
+                       ''', (name, surname1, surname2, birth_date, description, user_id))
+
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Usuario no encontrado o no autorizado"}), 404
+
+        return jsonify({"message": "Perfil actualizado correctamente"}), 200
+
+    except sqlite3.Error as e:
+        return jsonify({"error": f"Error de base de datos: {str(e)}"}), 500
+    finally:
+        conn.close()
+
+
+# ==========================================================
+# ENDPOINT: Subir Foto de Perfil (NUEVO)
+# ==========================================================
+@app.route('/api/profile/<int:user_id>/upload-pic', methods=['POST'])
+def upload_profile_pic(user_id):
+    # Verificar si la petición trae un archivo
+    if 'file' not in request.files:
+        return jsonify({"error": "No se ha seleccionado ningún archivo"}), 400
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({"error": "Nombre de archivo vacío"}), 400
+
+    if file and allowed_file(file.filename):
+        # Asegurar nombre de archivo seguro y único (usando el ID de usuario)
+        filename = secure_filename(f"user_{user_id}_{file.filename}")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+        # Guardar archivo en el disco
+        file.save(filepath)
+
+        # Ruta relativa para guardar en BD (empezando por /static)
+        db_path = f"/{UPLOAD_FOLDER}/{filename}"
+
+        # Actualizar Base de Datos
+        conn = get_db_connection()
+        try:
+            conn.execute('UPDATE users SET profile_pic = ? WHERE id = ?', (db_path, user_id))
+            conn.commit()
+            return jsonify({
+                "message": "Foto de perfil actualizada",
+                "new_pic_url": db_path
+            }), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        finally:
+            conn.close()
+
+    return jsonify({"error": "Tipo de archivo no permitido"}), 400
 
 
 @app.route('/api/songs', methods=['GET', 'POST'])

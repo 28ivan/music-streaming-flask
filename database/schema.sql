@@ -29,7 +29,7 @@ CREATE TABLE songs (
     track_number INTEGER,
     release_year INTEGER,
     song_description TEXT,
-    cover_pic TEXT,
+    cover_pic TEXT
 );
 
 CREATE TABLE favorites (
