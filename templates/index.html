@@ -190,8 +190,7 @@
         <div class="nav-icons">
             <img src="/static/btnCancionesFav.png" class="icon-btn" onclick="loadFavorites()">
             <img src="/static/btnPerfil.png" id="nav-profile-pic" class="icon-btn" onclick="loadProfile()">
-            <img src="/static/btnAniadirCancionAdmin.png" id="btn-add-song" class="icon-btn hidden">
-            <img src="/static/btnAdmin.png" id="btn-admin" class="icon-btn hidden" onclick="nav('view-admin')">
+<img src="/static/btnAniadirCancionAdmin.png" id="btn-add-song" class="icon-btn hidden" onclick="nav('view-add-song')">            <img src="/static/btnAdmin.png" id="btn-admin" class="icon-btn hidden" onclick="nav('view-admin')">
             <button onclick="logout()" class="btn-outline" style="padding: 8px 15px; width: auto; font-size: 12px;">SALIR</button>
         </div>
     </div>
@@ -246,7 +245,72 @@
         <img src="/static/btnVolver.png" class="btn-volver" style="height: 60px;" onclick="nav('view-catalog')">
     </div>
 </div>
+<div id="view-add-song" class="view hidden" style="margin-top: 0; max-width: 950px;">
+    <div style="display: flex; align-items: center; margin-bottom: 30px; gap: 20px;">
+        <img src="/static/btnAniadirCancionAdmin.png" class="logo-nav">
+        <h2 style="font-size: 32px; margin: 0; font-weight: bold;">Añadir Canción</h2>
+    </div>
 
+    <div class="catalog-container" style="padding: 40px; border-radius: 20px; background: rgba(30, 20, 0, 0.8);">
+        <form id="form-add-song" onsubmit="addSongFull(event)">
+
+            <div class="flex-row">
+                <div class="col-2">
+                    <label class="login-label">Título</label>
+                    <input type="text" id="song-title" required placeholder="Título de la canción">
+                </div>
+                <div class="col-2">
+                    <label class="login-label">Artista</label>
+                    <input type="text" id="song-artist" required placeholder="Artista">
+                </div>
+            </div>
+
+            <div class="flex-row">
+                <div class="col-2">
+                    <label class="login-label">Álbum</label>
+                    <input type="text" id="song-album" placeholder="Álbum">
+                </div>
+                <div class="col-1">
+                    <label class="login-label">Duración (segundos)</label>
+                    <input type="number" id="song-duration" placeholder="Ej: 210">
+                </div>
+            </div>
+
+            <div class="flex-row">
+                <div class="col-1">
+                    <label class="login-label">Número de pista</label>
+                    <input type="number" id="song-track" placeholder="Ej: 3">
+                </div>
+                <div class="col-1">
+                    <label class="login-label">Año de lanzamiento</label>
+                    <input type="number" id="song-year" placeholder="Ej: 2020">
+                </div>
+            </div>
+
+            <div class="flex-row">
+                <div class="col-2">
+                    <label class="login-label">Descripción</label>
+                    <textarea id="song-description" placeholder="Descripción de la canción"></textarea>
+                </div>
+            </div>
+
+            <div class="flex-row">
+                <div class="col-2">
+                    <label class="login-label">URL Portada (opcional)</label>
+                    <input type="text" id="song-cover" placeholder="Ej: /static/cover.png o URL externa">
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn-solid">GUARDAR CANCIÓN</button>
+            </div>
+        </form>
+    </div>
+
+    <div style="margin-top: 30px;">
+        <img src="/static/btnVolver.png" class="btn-volver" style="height: 60px;" onclick="nav('view-catalog')">
+    </div>
+</div>
 <script>
     let currentUser = null;
     let currentProfilePicBase64 = "/static/btnPerfil.png"; // Imagen por defecto
@@ -358,10 +422,10 @@
                                <img src="/static/btnEliminar.png" class="admin-delete-icon" style="background: white; border-radius: 50%;">
                              </button>`;
             } else if (!isCatalog) {
-                btnDelete = `<button class="admin-delete-btn" onclick="alert('Funcionalidad de borrar de favoritos pendiente en backend')">
-                               <img src="/static/btnBasura.png" class="admin-delete-icon" style="background: white; border-radius: 50%;">
-                             </button>`;
-            }
+            btnDelete = `<button class="admin-delete-btn" onclick="removeFavorite(${s.id})">
+                   <img src="/static/btnBasura.png" class="admin-delete-icon" style="background: white; border-radius: 50%;">
+                 </button>`;
+}
 
 
             // Contenedor con degradado superior para asegurar legibilidad sin tapar la foto
@@ -608,6 +672,48 @@
             }
         }
     }
+    // ==========================================================
+// US-6: AÑADIR CANCIÓN COMPLETO (ADMIN)
+// ==========================================================
+async function addSongFull(e) {
+    e.preventDefault();
+
+    const body = {
+        title: document.getElementById('song-title').value,
+        artist: document.getElementById('song-artist').value,
+        album: document.getElementById('song-album').value,
+        duration_seconds: document.getElementById('song-duration').value,
+        track_number: document.getElementById('song-track').value,
+        release_year: document.getElementById('song-year').value,
+        song_description: document.getElementById('song-description').value,
+        cover_pic: document.getElementById('song-cover').value
+    };
+
+    const res = await apiCall('/api/songs', 'POST', body);
+
+    if (res.ok) {
+        alert("Canción añadida correctamente");
+        document.getElementById('form-add-song').reset();
+        nav('view-catalog');
+        loadCatalog();
+    } else {
+        alert("Error al añadir canción: " + res.data.error);
+    }
+}
+
+
+// ==========================================================
+// US-4: BORRAR DE FAVORITOS
+// ==========================================================
+async function removeFavorite(songId) {
+    const res = await apiCall(`/api/favorites/${currentUser.id}/${songId}`, 'DELETE');
+    if (res.ok) {
+        alert("Canción eliminada de favoritos");
+        loadFavorites();
+    } else {
+        alert("Error al eliminar de favoritos");
+    }
+}
 </script>
 </body>
 </html>

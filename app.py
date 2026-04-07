@@ -216,8 +216,22 @@ def handle_songs():
 
     if request.method == 'POST':
         data = request.get_json()
-        conn.execute('INSERT INTO songs (title, artist, album, duration_seconds) VALUES (?, ?, ?, ?)',
-                     (data['title'], data['artist'], data.get('album'), data.get('duration_seconds')))
+
+        conn.execute('''
+                     INSERT INTO songs
+                     (title, artist, album, duration_seconds, track_number, release_year, song_description, cover_pic)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     ''', (
+                         data['title'],
+                         data['artist'],
+                         data.get('album'),
+                         data.get('duration_seconds'),
+                         data.get('track_number'),
+                         data.get('release_year'),
+                         data.get('song_description'),
+                         data.get('cover_pic')
+                     ))
+
         conn.commit()
         conn.close()
         return jsonify({"message": "Canción añadida"}), 201
@@ -255,7 +269,16 @@ def handle_favorites(user_id):
         finally:
             conn.close()
         return jsonify({"message": "Añadido a favoritos"}), 201
-
+# ==========================================================
+# US-4: ELIMINAR CANCIÓN DE FAVORITOS
+# ==========================================================
+@app.route('/api/favorites/<int:user_id>/<int:song_id>', methods=['DELETE'])
+def delete_favorite(user_id, song_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM favorites WHERE user_id = ? AND song_id = ?', (user_id, song_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Eliminado de favoritos"}), 200
 
 ## Para la US 5. Obtener usuarios pendientes de aprobacion
 @app.route('/api/admin/pending_users', methods=['GET'])
