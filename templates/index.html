@@ -186,7 +186,10 @@
 <div id="view-catalog" class="view hidden" style="margin-top: 0; max-width: 1200px;">
     <div class="navbar">
         <img src="/static/leon-removebg-preview.png" class="logo-nav">
-        <input type="text" class="search-bar" placeholder="Buscar canción...">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="text" id="search-input" class="search-bar" placeholder="Buscar canción..." onkeypress="handleSearchEnter(event)" oninput="checkEmptySearch()">
+            <button onclick="filterSongs()" class="btn-outline-gold" style="padding: 10px 15px; width: auto; font-size: 12px; border-radius: 20px;">BUSCAR</button>
+        </div>
         <div class="nav-icons">
             <img src="/static/btnCancionesFav.png" class="icon-btn" onclick="loadFavorites()">
             <img src="/static/btnPerfil.png" id="nav-profile-pic" class="icon-btn" onclick="loadProfile()">
@@ -294,7 +297,7 @@
                 </div>
             </div>
 
-            <div class="flex-row">
+            <div class="flex-row" style="margin-top: 50px;">
                 <div class="col-2">
                     <label class="login-label">URL Portada (opcional)</label>
                     <input type="text" id="song-cover" placeholder="Ej: /static/cover.png o URL externa">
@@ -316,6 +319,8 @@
     let currentProfilePicBase64 = "/static/btnPerfil.png"; // Imagen por defecto
     // NUEVA VARIABLE: Guardará el archivo de imagen hasta que pulsemos GUARDAR
     let pendingProfilePicFile = null;
+    let currentSongs = [];       // Guardará las canciones cargadas actualmente
+    let isViewingCatalog = true; // Para saber qué botones pintar al filtrar
 
     // FUNCIONALIDAD CAMBIAR FOTO
     function previewImage(event) {
@@ -384,15 +389,62 @@
 
     async function loadCatalog() {
         document.getElementById('catalog-title').innerText = "Catálogo General";
+        isViewingCatalog = true;
+        document.getElementById('search-input').value = ""; // Limpia el buscador al entrar
+
         const res = await apiCall('/api/songs');
-        renderGrid(res.data, true);
+        if (res.ok) {
+            currentSongs = res.data; // Guardamos la lista original
+            renderGrid(currentSongs, true);
+        }
     }
 
     async function loadFavorites() {
         document.getElementById('catalog-title').innerText = "Mis Favoritos";
+        isViewingCatalog = false;
+        document.getElementById('search-input').value = ""; // Limpia el buscador al entrar
+
         const res = await apiCall(`/api/favorites/${currentUser.id}`);
-        renderGrid(res.data, false);
-        nav('view-catalog');
+        if (res.ok) {
+            currentSongs = res.data; // Guardamos la lista original
+            renderGrid(currentSongs, false);
+            nav('view-catalog');
+        }
+    }
+
+    // NUEVA FUNCIÓN: Permite buscar al pulsar la tecla "Enter"
+    function handleSearchEnter(event) {
+        if (event.key === 'Enter') {
+            filterSongs();
+        }
+    }
+
+    // NUEVA FUNCIÓN: Filtrar canciones
+    function filterSongs() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+
+        // Si el buscador está vacío, volvemos a mostrar todas las canciones
+        if (query.trim() === '') {
+            renderGrid(currentSongs, isViewingCatalog);
+            return;
+        }
+
+        // Filtramos buscando coincidencias en el título o en el artista
+        const filtered = currentSongs.filter(s =>
+            s.title.toLowerCase().includes(query) ||
+            s.artist.toLowerCase().includes(query)
+        );
+
+        // Renderizamos solo las canciones que coinciden
+        renderGrid(filtered, isViewingCatalog);
+    }
+
+    // NUEVA FUNCIÓN: Restaura la lista completa automáticamente si borras todo el texto
+    function checkEmptySearch() {
+        const query = document.getElementById('search-input').value;
+        if (query.trim() === '') {
+            renderGrid(currentSongs, isViewingCatalog);
+        }
     }
 
     function renderGrid(songs, isCatalog) {
