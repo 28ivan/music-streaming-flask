@@ -13,13 +13,17 @@ CORS(app)
 DATABASE = 'database/music.sqlite'
 
 # CONFIGURACIÓN DE SUBIDA DE IMÁGENES
-UPLOAD_FOLDER = 'static/uploads/profiles' # Carpeta donde se guardarán
+BASE_UPLOAD_FOLDER = 'static/uploads' # Carpeta base
+PROFILES_UPLOAD_FOLDER = os.path.join(BASE_UPLOAD_FOLDER, 'profiles') # Perfiles
+COVERS_UPLOAD_FOLDER = os.path.join(BASE_UPLOAD_FOLDER, 'covers')     # NUEVO: Portadas
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'} # Extensiones permitidas
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
 # Asegurar que la carpeta exista al arrancar
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(PROFILES_UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(COVERS_UPLOAD_FOLDER, exist_ok=True) # NUEVO
+
+app.config['PROFILES_UPLOAD_FOLDER'] = PROFILES_UPLOAD_FOLDER
+app.config['COVERS_UPLOAD_FOLDER'] = COVERS_UPLOAD_FOLDER # NUEVO
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -61,16 +65,20 @@ def register():
 
                 # Generar un nombre único para evitar que dos usuarios sobrescriban "foto.png"
                 filename = f"reg_{uuid.uuid4().hex[:8]}.{ext}"
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+                # CORRECCIÓN 1: Usar la carpeta específica de perfiles
+                filepath = os.path.join(app.config['PROFILES_UPLOAD_FOLDER'], filename)
 
                 # Guardar el archivo físicamente en la carpeta
                 with open(filepath, "wb") as f:
                     f.write(file_data)
 
-                # Actualizar la variable para guardar solo la ruta en SQLite
-                db_pic_path = f"/{UPLOAD_FOLDER}/{filename}"
+                # CORRECCIÓN 2: Forzar barras normales para la web (URL estática)
+                db_pic_path = f"/static/uploads/profiles/{filename}"
+
             except Exception as e:
-                print(f"Error procesando imagen: {e}")
+                import traceback
+                traceback.print_exc()  # Esto te mostrará el error real en la consola si algo falla
                 db_pic_path = '/static/fotoPersona.png'  # Fallback si algo falla
         # -------------------------------------------------------------
 
@@ -165,76 +173,116 @@ def update_profile(user_id):
 
 
 # ==========================================================
-# ENDPOINT: Subir Foto de Perfil (NUEVO)
+# ENDPOINT: Subir Foto de Perfil (CORREGIDO)
 # ==========================================================
 @app.route('/api/profile/<int:user_id>/upload-pic', methods=['POST'])
 def upload_profile_pic(user_id):
-    # Verificar si la petición trae un archivo
-    if 'file' not in request.files:
-        return jsonify({"error": "No se ha seleccionado ningún archivo"}), 400
+    try:
+        # Verificar si la petición trae un archivo
+        if 'file' not in request.files:
+            return jsonify({"error": "No se ha seleccionado ningún archivo"}), 400
 
-    file = request.files['file']
+        file = request.files['file']
 
-    if file.filename == '':
-        return jsonify({"error": "Nombre de archivo vacío"}), 400
+        if file.filename == '':
+            return jsonify({"error": "Nombre de archivo vacío"}), 400
 
-    if file and allowed_file(file.filename):
-        # Asegurar nombre de archivo seguro y único (usando el ID de usuario)
-        filename = secure_filename(f"user_{user_id}_{file.filename}")
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if file and allowed_file(file.filename):
+            # Asegurar nombre de archivo seguro y único
+            filename = secure_filename(f"user_{user_id}_{file.filename}")
 
-        # Guardar archivo en el disco
-        file.save(filepath)
+            # CORRECCIÓN 1: Usar la carpeta específica de perfiles
+            filepath = os.path.join(app.config['PROFILES_UPLOAD_FOLDER'], filename)
 
-        # Ruta relativa para guardar en BD (empezando por /static)
-        db_path = f"/{UPLOAD_FOLDER}/{filename}"
+            # Guardar archivo en el disco
+            file.save(filepath)
 
-        # Actualizar Base de Datos
-        conn = get_db_connection()
-        try:
+            # CORRECCIÓN 2: Forzar barras normales para la web (URL estática)
+            db_path = f"/static/uploads/profiles/{filename}"
+
+            # Actualizar Base de Datos
+            conn = get_db_connection()
             conn.execute('UPDATE users SET profile_pic = ? WHERE id = ?', (db_path, user_id))
             conn.commit()
+            conn.close()
+
             return jsonify({
                 "message": "Foto de perfil actualizada",
                 "new_pic_url": db_path
             }), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-        finally:
-            conn.close()
 
-    return jsonify({"error": "Tipo de archivo no permitido"}), 400
+        return jsonify({"error": "Tipo de archivo no permitido"}), 400
+
+    except Exception as e:
+        # Capturamos cualquier error de guardado y lo mostramos en consola
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Error interno guardando la imagen: {str(e)}"}), 500
 
 
 @app.route('/api/songs', methods=['GET', 'POST'])
 def handle_songs():
     conn = get_db_connection()
+
+    # === OBTENER CATÁLOGO ===
     if request.method == 'GET':
         songs = conn.execute('SELECT * FROM songs').fetchall()
         conn.close()
         return jsonify([dict(s) for s in songs]), 200
 
+    # === AÑADIR NUEVA CANCIÓN ===
     if request.method == 'POST':
         data = request.get_json()
 
-        conn.execute('''
-                     INSERT INTO songs
-                     (title, artist, album, duration_seconds, track_number, release_year, song_description, cover_pic)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                     ''', (
-                         data['title'],
-                         data['artist'],
-                         data.get('album'),
-                         data.get('duration_seconds'),
-                         data.get('track_number'),
-                         data.get('release_year'),
-                         data.get('song_description'),
-                         data.get('cover_pic')
-                     ))
+        # --- NUEVA LÓGICA: Procesar imagen Base64 de la portada a archivo físico ---
+        raw_cover = data.get('cover_pic', '/static/fotoPersona.png')
+        db_cover_path = raw_cover  # Por defecto, la ruta o el Base64
 
-        conn.commit()
-        conn.close()
-        return jsonify({"message": "Canción añadida"}), 201
+        if raw_cover and raw_cover.startswith('data:image'):
+            try:
+                # Separar cabecera y decodificar
+                header, encoded = raw_cover.split(",", 1)
+                ext = header.split(';')[0].split('/')[1]
+                file_data = base64.b64decode(encoded)
+
+                # Generar nombre único y guardar en la carpeta de COVERS
+                filename = f"cover_{uuid.uuid4().hex[:8]}.{ext}"
+                filepath = os.path.join(app.config['COVERS_UPLOAD_FOLDER'], filename)
+
+                with open(filepath, "wb") as f:
+                    f.write(file_data)
+
+                # Actualizar variable para guardar solo la ruta
+                db_cover_path = f"/static/uploads/covers/{filename}"
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                db_cover_path = '/static/fotoPersona.png'  # Fallback si falla
+        # -------------------------------------------------------------------------
+
+        try:
+            conn.execute('''
+                         INSERT INTO songs
+                         (title, artist, album, duration_seconds, track_number, release_year, song_description,
+                          cover_pic)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                         ''', (
+                             data['title'],
+                             data['artist'],
+                             data.get('album'),
+                             data.get('duration_seconds'),
+                             data.get('track_number'),
+                             data.get('release_year'),
+                             data.get('song_description'),
+                             db_cover_path  # Usamos la nueva variable con la ruta limpia
+                         ))
+
+            conn.commit()
+            return jsonify({"message": "Canción añadida exitosamente"}), 201
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+        finally:
+            conn.close()
 
 
 @app.route('/api/songs/<int:song_id>', methods=['DELETE'])

@@ -276,69 +276,63 @@
 <div id="view-add-song" class="view hidden" style="margin-top: 0; max-width: 950px;">
     <div style="display: flex; align-items: center; margin-bottom: 30px; gap: 20px;">
         <img src="/static/btnAniadirCancionAdmin.png" class="logo-nav">
-        <h2 style="font-size: 32px; margin: 0; font-weight: bold;">Añadir Canción</h2>
+        <h2 style="font-size: 32px; margin: 0; font-weight: bold;">Añadir canción al catálogo</h2>
     </div>
 
     <div class="catalog-container" style="padding: 40px; border-radius: 20px; background: rgba(30, 20, 0, 0.8);">
-        <form id="form-add-song" onsubmit="addSongFull(event)">
 
-            <div class="flex-row">
-                <div class="col-2">
-                    <label class="login-label">Título</label>
-                    <input type="text" id="song-title" required placeholder="Título de la canción">
-                </div>
-                <div class="col-2">
-                    <label class="login-label">Artista</label>
-                    <input type="text" id="song-artist" required placeholder="Artista">
-                </div>
+        <div style="display: flex; gap: 30px; align-items: flex-start;">
+
+            <div class="profile-container" style="width: 220px; padding: 20px; margin-top: 10px;">
+                <img src="/static/fotoPersona.png" id="song-cover-preview" class="profile-pic" style="border-radius: 20px; width: 100%; height: 180px; object-fit: cover; margin-bottom: 10px; border: 2px solid var(--text);">
+
+                <input type="file" id="song-cover-input" accept="image/*" class="hidden" onchange="handleSongCoverPreview(this)">
+                <button type="button" class="btn-outline-gold" style="padding: 8px 10px; font-size: 14px; width: 100%;" onclick="document.getElementById('song-cover-input').click()">Elegir carátula</button>
             </div>
 
-            <div class="flex-row">
-                <div class="col-2">
-                    <label class="login-label">Álbum</label>
-                    <input type="text" id="song-album" placeholder="Álbum">
-                </div>
-                <div class="col-1">
-                    <label class="login-label">Duración (segundos)</label>
-                    <input type="number" id="song-duration" placeholder="Ej: 210">
-                </div>
-            </div>
+            <div style="flex: 1;">
+                <form id="form-add-song" onsubmit="addSongFull(event)">
 
-            <div class="flex-row">
-                <div class="col-1">
-                    <label class="login-label">Número de pista</label>
-                    <input type="number" id="song-track" placeholder="Ej: 3">
-                </div>
-                <div class="col-1">
-                    <label class="login-label">Año de lanzamiento</label>
-                    <input type="number" id="song-year" placeholder="Ej: 2020">
-                </div>
-            </div>
+                    <div class="flex-row">
+                        <div class="col-2">
+                            <input type="text" id="song-title" required placeholder="Nombre de la canción">
+                        </div>
+                        <div class="col-2">
+                            <input type="text" id="song-album" placeholder="Álbum">
+                        </div>
+                        <div class="col-1">
+                            <input type="number" id="song-track" placeholder="Nº track">
+                        </div>
+                    </div>
 
-            <div class="flex-row">
-                <div class="col-2">
-                    <label class="login-label">Descripción</label>
-                    <textarea id="song-description" placeholder="Descripción de la canción"></textarea>
-                </div>
-            </div>
+                    <div class="flex-row">
+                        <div class="col-2">
+                            <input type="text" id="song-artist" required placeholder="Artista">
+                        </div>
+                        <div class="col-2">
+                            <input type="number" id="song-year" placeholder="Año publicación">
+                        </div>
+                        <div class="col-1">
+                            <input type="number" id="song-duration" placeholder="Duración (seg)">
+                        </div>
+                    </div>
 
-            <div class="flex-row" style="margin-top: 50px;">
-                <div class="col-2">
-                    <label class="login-label">URL Portada (opcional)</label>
-                    <input type="text" id="song-cover" placeholder="Ej: /static/cover.png o URL externa">
-                </div>
-            </div>
+                    <div class="flex-row">
+                        <div class="col-1">
+                            <textarea id="song-description" placeholder="Descripción"></textarea>
+                        </div>
+                    </div>
 
-            <div style="margin-top: 20px;">
-                <button type="submit" class="btn-solid">GUARDAR CANCIÓN</button>
+                    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center;">
+                        <img src="/static/btnVolver.png" class="btn-volver" style="height: 50px;" onclick="nav('view-catalog')">
+                        <button type="submit" class="btn-solid" style="width: auto; padding: 10px 40px;">GUARDAR CANCIÓN</button>
+                    </div>
+                </form>
             </div>
-        </form>
-    </div>
-
-    <div style="margin-top: 30px;">
-        <img src="/static/btnVolver.png" class="btn-volver" style="height: 60px;" onclick="nav('view-catalog')">
+        </div>
     </div>
 </div>
+
 
 <div id="modal-playlists" class="modal-overlay hidden">
     <div class="playlist-modal">
@@ -836,12 +830,34 @@
             }
         }
     }
+
     // ==========================================================
-// US-6: AÑADIR CANCIÓN COMPLETO (ADMIN)
+// PREVISUALIZACIÓN DE LA PORTADA
+// ==========================================================
+function handleSongCoverPreview(input) {
+    if (!input.files || !input.files[0]) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Asignamos el Base64 a la imagen del HTML para que el admin la vea
+        document.getElementById('song-cover-preview').src = e.target.result;
+    }
+    reader.readAsDataURL(input.files[0]);
+}
+
+// ==========================================================
+// US-6: AÑADIR CANCIÓN COMPLETO (ADMIN) - ACTUALIZADO CON FOTO
 // ==========================================================
 async function addSongFull(e) {
     e.preventDefault();
 
+    // UI Feedback para evitar doble clic
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = "Guardando...";
+    submitBtn.disabled = true;
+
+    // Recogemos todos los campos, incluyendo la ruta Base64 de la previsualización
     const body = {
         title: document.getElementById('song-title').value,
         artist: document.getElementById('song-artist').value,
@@ -850,18 +866,27 @@ async function addSongFull(e) {
         track_number: document.getElementById('song-track').value,
         release_year: document.getElementById('song-year').value,
         song_description: document.getElementById('song-description').value,
-        cover_pic: document.getElementById('song-cover').value
+        cover_pic: document.getElementById('song-cover-preview').src
     };
 
     const res = await apiCall('/api/songs', 'POST', body);
 
+    // Restauramos el botón
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+
     if (res.ok) {
         alert("Canción añadida correctamente");
+
+        // Limpiamos el formulario y la foto para la siguiente vez
         document.getElementById('form-add-song').reset();
+        document.getElementById('song-cover-preview').src = '/static/fotoPersona.png';
+
+        // Volvemos al catálogo y lo recargamos
         nav('view-catalog');
         loadCatalog();
     } else {
-        alert("Error al añadir canción: " + res.data.error);
+        alert("Error al añadir canción: " + res.error);
     }
 }
 
