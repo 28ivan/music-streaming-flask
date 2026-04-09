@@ -310,6 +310,77 @@ def reject_user(user_id):
     conn.close()
     return jsonify({"message": "Petición denegada y usuario eliminado"}), 200
 
+# US-4: GESTIÓN DE LISTAS DE REPRODUCCIÓN (PLAYLISTS)
+@app.route('/api/playlists/<int:user_id>', methods=['GET', 'POST'])
+def handle_playlists(user_id):
+    conn = get_db_connection()
+
+    # 1. OBTENER LAS LISTAS DE UN USUARIO
+    if request.method == 'GET':
+        playlists = conn.execute('SELECT * FROM playlists WHERE user_id = ?', (user_id,)).fetchall()
+        conn.close()
+        return jsonify([dict(p) for p in playlists]), 200
+
+    # 2. CREAR UNA NUEVA LISTA
+    if request.method == 'POST':
+        data = request.get_json()
+        playlist_name = data.get('name')
+
+        if not playlist_name:
+            conn.close()
+            return jsonify({"error": "El nombre de la lista es obligatorio"}), 400
+
+        # --- NUEVA VALIDACIÓN: Evitar nombres repetidos ---
+        existing_playlist = conn.execute(
+            'SELECT id FROM playlists WHERE user_id = ? AND name = ?',
+            (user_id, playlist_name)
+        ).fetchone()
+
+        if existing_playlist:
+            conn.close()
+            return jsonify({"error": f"Ya tienes una lista llamada '{playlist_name}'. ¡Elige otro nombre!"}), 400
+
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO playlists (user_id, name) VALUES (?, ?)', (user_id, playlist_name))
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+
+        return jsonify({"message": "Lista creada con éxito", "id": new_id, "name": playlist_name}), 201
+
+
+# 3. AÑADIR CANCIÓN A UNA LISTA
+@app.route('/api/playlists/<int:playlist_id>/songs', methods=['POST'])
+def add_song_to_playlist(playlist_id):
+    data = request.get_json()
+    song_id = data.get('song_id')
+
+    if not song_id:
+        return jsonify({"error": "El ID de la canción es obligatorio"}), 400
+
+    conn = get_db_connection()
+    try:
+        conn.execute('INSERT INTO playlist_songs (playlist_id, song_id) VALUES (?, ?)', (playlist_id, song_id))
+        conn.commit()
+        return jsonify({"message": "Canción añadida a la lista"}), 201
+    except sqlite3.IntegrityError:
+        # Si salta este error, es que la combinación playlist_id y song_id ya existe
+        return jsonify({"error": "La canción ya está en esta lista"}), 409
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+# 4. ELIMINAR UNA LISTA COMPLETA
+@app.route('/api/playlists/<int:playlist_id>', methods=['DELETE'])
+def delete_playlist(playlist_id):
+    conn = get_db_connection()
+    # Gracias al "ON DELETE CASCADE" del SQL, al borrar la lista se borran sus canciones de la tabla intermedia
+    conn.execute('DELETE FROM playlists WHERE id = ?', (playlist_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Lista eliminada correctamente"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

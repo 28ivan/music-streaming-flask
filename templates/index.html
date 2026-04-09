@@ -108,6 +108,31 @@
         }
         .admin-delete-btn:hover { transform: scale(1.1); }
         .admin-delete-icon { height: 35px; }
+
+        /* --- ESTILOS DEL MODAL DE LISTAS (US-4) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        .playlist-modal {
+            background: var(--gold); border-radius: 20px; padding: 30px; width: 450px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;
+        }
+        .playlist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .playlist-header h2 { margin: 0; font-size: 32px; color: white; font-weight: bold; }
+        .btn-dark { background: #8c640c; color: white; border: none; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+        .btn-dark:hover { transform: scale(1.05); }
+        .playlist-list { max-height: 250px; overflow-y: auto; padding-right: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .playlist-row { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;}
+        .playlist-row input { flex: 1; min-width: 200px; border: 2px solid white; background: transparent; color: white; border-radius: 20px; padding: 10px 15px; font-weight: bold; }
+        .playlist-modal .btn-dark {
+            padding: 6px 12px ;
+            font-size: 14px;
+            width: auto;
+            min-width: 0;
+            line-height: 1.2;
+        }
     </style>
 </head>
 <body>
@@ -314,6 +339,26 @@
         <img src="/static/btnVolver.png" class="btn-volver" style="height: 60px;" onclick="nav('view-catalog')">
     </div>
 </div>
+
+<div id="modal-playlists" class="modal-overlay hidden">
+    <div class="playlist-modal">
+        <div class="playlist-header">
+            <h2>Mis listas</h2>
+            <button class="btn-dark" onclick="closePlaylistModal()">CERRAR</button>
+        </div>
+
+        <div class="playlist-list" id="playlist-container"></div>
+
+        <div style="margin-top: 25px; border-top: 2px solid rgba(255,255,255,0.3); padding-top: 20px;">
+            <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px; color: white;">Crear nueva lista:</p>
+            <div class="playlist-row">
+                <input type="text" id="new-playlist-name" placeholder="Escribe un nombre...">
+                <button class="btn-dark" onclick="createNewPlaylist()">GUARDAR</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     let currentUser = null;
     let currentProfilePicBase64 = "/static/btnPerfil.png"; // Imagen por defecto
@@ -460,9 +505,9 @@
                 card.style.backgroundImage = `url('${s.cover_pic}')`;
             }
 
-            // Botón inferior izquierdo (+)
+            // Botón inferior izquierdo (+) -> AHORA ABRE EL MODAL DE LISTAS
             const btnAdd = isCatalog
-                ? `<button class="action-btn-wrapper" onclick="addFavorite(${s.id})">
+                ? `<button class="action-btn-wrapper" onclick="openPlaylistModal(${s.id})">
                      <img src="/static/btnAniadircancion.png" class="action-icon" style="background: white; border-radius: 50%;">
                    </button>`
                 : '';
@@ -494,9 +539,76 @@
         });
     }
 
-    async function addFavorite(songId) {
-        const res = await apiCall(`/api/favorites/${currentUser.id}`, 'POST', { song_id: songId });
-        if(res.ok) alert('Añadida a tu lista personal');
+    // ==========================================================
+    // LÓGICA DE LISTAS DE REPRODUCCIÓN (US-4)
+    // ==========================================================
+    let currentSongToPlaylist = null; // Guarda qué canción vamos a añadir
+
+    async function openPlaylistModal(songId) {
+        currentSongToPlaylist = songId;
+        document.getElementById('modal-playlists').classList.remove('hidden');
+        await fetchAndRenderPlaylists();
+    }
+
+    function closePlaylistModal() {
+        document.getElementById('modal-playlists').classList.add('hidden');
+        currentSongToPlaylist = null;
+        document.getElementById('new-playlist-name').value = ''; // Limpiar el input
+    }
+
+    async function fetchAndRenderPlaylists() {
+        const container = document.getElementById('playlist-container');
+        container.innerHTML = '<p style="text-align: center; color: white;">Cargando listas...</p>';
+
+        const res = await apiCall(`/api/playlists/${currentUser.id}`);
+        if(res.ok) {
+            container.innerHTML = '';
+            if(res.data.length === 0) {
+                container.innerHTML = '<p style="text-align:center; font-size: 14px; color: white;">Aún no tienes listas. Crea una abajo.</p>';
+            } else {
+                res.data.forEach(p => {
+                    // Pintamos cada lista con su botón de añadir (+) y borrar (x)
+                    container.innerHTML += `
+                        <div class="playlist-row">
+                            <input type="text" value="${p.name}" readonly>
+                            <img src="/static/btnAniadircancion.png" class="icon-btn" style="height: 35px; background: white; border-radius: 50%; padding: 2px; box-sizing: border-box;" onclick="addSongToPlaylist(${p.id})">
+                            <img src="/static/btnEliminar.png" class="icon-btn" style="height: 35px; background: white; border-radius: 50%; padding: 2px; box-sizing: border-box;" onclick="deletePlaylist(${p.id})">
+                        </div>
+                    `;
+                });
+            }
+        }
+    }
+
+    async function createNewPlaylist() {
+        const nameInput = document.getElementById('new-playlist-name');
+        if(!nameInput.value.trim()) return alert("Por favor, ponle un nombre a la lista.");
+
+        const res = await apiCall(`/api/playlists/${currentUser.id}`, 'POST', { name: nameInput.value });
+        if(res.ok) {
+            nameInput.value = '';
+            fetchAndRenderPlaylists();
+        } else {
+            alert(res.data.error || "Error al crear la lista");
+        }
+    }
+
+    async function addSongToPlaylist(playlistId) {
+        if(!currentSongToPlaylist) return;
+        const res = await apiCall(`/api/playlists/${playlistId}/songs`, 'POST', { song_id: currentSongToPlaylist });
+        if(res.ok) {
+            alert('¡Canción añadida a la lista!');
+            closePlaylistModal(); // Cerramos el modal al terminar
+        } else {
+            alert(res.data.error || "Error al añadir la canción");
+        }
+    }
+
+    async function deletePlaylist(playlistId) {
+        if(confirm("¿Seguro que quieres borrar esta lista y todas las canciones que contiene?")) {
+            const res = await apiCall(`/api/playlists/${playlistId}`, 'DELETE');
+            if(res.ok) fetchAndRenderPlaylists(); // Recargamos para que desaparezca
+        }
     }
 
     async function loadProfile() {

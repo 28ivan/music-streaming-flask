@@ -41,6 +41,25 @@ CREATE TABLE favorites (
     FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
 );
 
+-- Tabla para almacenar las listas creadas por cada usuario
+CREATE TABLE playlists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT UNIQUE NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Tabla intermedia para asociar canciones a las listas
+CREATE TABLE playlist_songs (
+    playlist_id INTEGER NOT NULL,
+    song_id INTEGER NOT NULL,
+    added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (playlist_id, song_id),
+    FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
+);
+
 -- Administrador por defecto (IMPORTANTE: Le pasamos un 1 en is_approved para que pueda entrar)
 INSERT INTO users (email, username, password_hash, name, surname1, birth_date, role, is_approved)
 VALUES ('admin@music.com', 'admin', 'scrypt:32768:8:1$Ku6tiMHXvyMgOQK9$33a6e21bdc8a9298f9c39e7f978cc3f134046a708f184f890e6935f0be714af9d5e0bc7a96cacbda29fd41c49cc2c77918e91b33e72cb680e766c9b1a989e26f', 'Admin', 'Root', '2000-01-01', 'ADMIN', 1);
