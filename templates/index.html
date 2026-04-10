@@ -209,22 +209,39 @@
 </div>
 
 <div id="view-catalog" class="view hidden" style="margin-top: 0; max-width: 1200px;">
-    <div class="navbar">
-        <img src="/static/leon-removebg-preview.png" class="logo-nav">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="text" id="search-input" class="search-bar" placeholder="Buscar canción..." onkeypress="handleSearchEnter(event)" oninput="checkEmptySearch()">
-            <button onclick="filterSongs()" class="btn-outline-gold" style="padding: 10px 15px; width: auto; font-size: 12px; border-radius: 20px;">BUSCAR</button>
+    <div class="navbar" style="align-items: center;">
+
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <img src="/static/leon-removebg-preview.png" class="logo-nav" id="catalog-logo-general">
+
+            <div id="catalog-playlist-header" class="hidden" style="display: flex; align-items: center; gap: 20px;">
+                <img src="/static/btnIconoVerLista.png" style="height: 90px; background: white; border-radius: 50%; padding: 5px; box-sizing: border-box;">
+                <h2 id="catalog-playlist-title" style="font-size: 42px; margin: 0; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Nombre Lista</h2>
+            </div>
         </div>
-        <div class="nav-icons">
-            <img src="/static/btnCancionesFav.png" class="icon-btn" onclick="loadFavorites()">
-            <img src="/static/btnPerfil.png" id="nav-profile-pic" class="icon-btn" onclick="loadProfile()">
-<img src="/static/btnAniadirCancionAdmin.png" id="btn-add-song" class="icon-btn hidden" onclick="nav('view-add-song')">            <img src="/static/btnAdmin.png" id="btn-admin" class="icon-btn hidden" onclick="nav('view-admin')">
-            <button onclick="logout()" class="btn-outline" style="padding: 8px 15px; width: auto; font-size: 12px;">SALIR</button>
+
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div id="search-container" style="display: flex; align-items: center; gap: 10px;">
+                <input type="text" id="search-input" class="search-bar" placeholder="Buscar canción..." onkeypress="handleSearchEnter(event)" oninput="checkEmptySearch()">
+                <button onclick="filterSongs()" class="btn-outline-gold" style="padding: 10px 15px; width: auto; font-size: 12px; border-radius: 20px;">BUSCAR</button>
+            </div>
+            <div class="nav-icons" id="catalog-nav-icons">
+                <img src="/static/btnCancionesFav.png" class="icon-btn" onclick="loadPlaylistsManager()">
+                <img src="/static/btnPerfil.png" id="nav-profile-pic" class="icon-btn" onclick="loadProfile()">
+                <img src="/static/btnAniadirCancionAdmin.png" id="btn-add-song" class="icon-btn hidden" onclick="nav('view-add-song')">
+                <img src="/static/btnAdmin.png" id="btn-admin" class="icon-btn hidden" onclick="nav('view-admin')">
+                <button onclick="logout()" class="btn-outline" style="padding: 8px 15px; width: auto; font-size: 12px;">SALIR</button>
+            </div>
         </div>
     </div>
+
     <div class="catalog-container">
-        <h3 id="catalog-title" style="text-align: left; margin-top: 0;">Catálogo General</h3>
+        <h3 id="catalog-title" style="text-align: left; margin-top: 0; margin-bottom: 20px; font-size: 30px;">Catálogo General</h3>
         <div id="grid-songs" class="catalog-grid"></div>
+    </div>
+
+    <div style="margin-top: 30px; display: flex; justify-content: flex-start;">
+        <img src="/static/btnVolver.png" id="catalog-back-btn" class="btn-volver hidden" style="height: 60px;" onclick="loadPlaylistsManager()">
     </div>
 </div>
 
@@ -235,7 +252,7 @@
             <img src="/static/leon-removebg-preview.png" class="logo-nav">
             <h2 id="edit-profile-title" class="hidden" style="margin-left: 20px; font-size: 28px; margin-top: 0; margin-bottom: 0;">Actualiza tu perfil</h2>
         </div>
-        <button id="btn-mis-canciones" class="btn-solid" style="width: auto;" onclick="loadFavorites()">MIS CANCIONES</button>
+        <button id="btn-mis-canciones" class="btn-solid" style="width: auto;" onclick="loadPlaylistsManager()">MIS LISTAS</button>
     </div>
 
     <div style="display: flex; gap: 20px;">
@@ -284,7 +301,7 @@
         <div style="display: flex; gap: 30px; align-items: flex-start;">
 
             <div class="profile-container" style="width: 220px; padding: 20px; margin-top: 10px;">
-                <img src="/static/fotoPersona.png" id="song-cover-preview" class="profile-pic" style="border-radius: 20px; width: 100%; height: 180px; object-fit: cover; margin-bottom: 10px; border: 2px solid var(--text);">
+                <img src="/static/fotoCancion.png" id="song-cover-preview" style="border-radius: 20px; width: 100%; height: 180px; object-fit: contain; padding: 40px; box-sizing: border-box; margin-bottom: 10px; border: 2px solid var(--gold); box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
 
                 <input type="file" id="song-cover-input" accept="image/*" class="hidden" onchange="handleSongCoverPreview(this)">
                 <button type="button" class="btn-outline-gold" style="padding: 8px 10px; font-size: 14px; width: 100%;" onclick="document.getElementById('song-cover-input').click()">Elegir carátula</button>
@@ -333,6 +350,39 @@
     </div>
 </div>
 
+<div id="view-playlists-manager" class="view hidden" style="margin-top: 0; max-width: 950px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px;">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <img src="/static/btnCancionesFav.png" class="logo-nav">
+            <h2 style="font-size: 32px; margin: 0; font-weight: bold;">Mis listas</h2>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <input type="text" id="playlist-search-input" placeholder="Buscar lista..." style="border-radius: 25px; border: 2px solid white; background: transparent; color: white; padding: 10px 20px; width: 250px; font-weight: bold;" onkeypress="handlePlaylistSearchEnter(event)" oninput="checkEmptyPlaylistSearch()">
+            <img src="/static/btnAniadircancionAdmin.png" class="icon-btn" style="height: 45px;" onclick="openCreatePlaylistModal()" title="Crear nueva lista">
+        </div>
+    </div>
+
+    <div class="catalog-container" style="padding: 30px; border-radius: 20px; background: rgba(30, 20, 0, 0.6);">
+        <div id="manager-playlist-container" style="max-height: 450px; overflow-y: auto; padding-right: 15px;">
+        </div>
+    </div>
+
+    <div style="margin-top: 30px; display: flex; justify-content: flex-start;">
+        <img src="/static/btnVolver.png" class="btn-volver" style="height: 60px;" onclick="nav('view-catalog')">
+    </div>
+</div>
+
+<div id="modal-create-playlist" class="modal-overlay hidden">
+    <div class="playlist-modal" style="width: 350px; text-align: center;">
+        <h2 style="margin-top: 0; margin-bottom: 25px; font-size: 24px;">Crear nueva lista</h2>
+        <input type="text" id="new-playlist-name" placeholder="Nombre de la lista..." style="margin-bottom: 25px; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.5); color: white;">
+
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            <button class="btn-dark" style="width: auto; padding: 10px 25px; font-size: 14px; background: rgba(0,0,0,0.4); border: 1px solid rgba(191, 139, 22, 0.5);" onclick="closeCreatePlaylistModal()">CANCELAR</button>
+            <button class="btn-dark" style="width: auto; padding: 10px 25px; font-size: 14px; background: rgba(0,0,0,0.4); border: 1px solid rgba(191, 139, 22, 0.5);" onclick="createManagerPlaylist()">GUARDAR</button>
+        </div>
+    </div>
+</div>
 
 <div id="modal-playlists" class="modal-overlay hidden">
     <div class="playlist-modal">
@@ -342,14 +392,6 @@
         </div>
 
         <div class="playlist-list" id="playlist-container"></div>
-
-        <div style="margin-top: 25px; border-top: 2px solid rgba(255,255,255,0.3); padding-top: 20px;">
-            <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px; color: white;">Crear nueva lista:</p>
-            <div class="playlist-row">
-                <input type="text" id="new-playlist-name" placeholder="Escribe un nombre...">
-                <button class="btn-dark" onclick="createNewPlaylist()">GUARDAR</button>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -360,6 +402,8 @@
     let pendingProfilePicFile = null;
     let currentSongs = [];       // Guardará las canciones cargadas actualmente
     let isViewingCatalog = true; // Para saber qué botones pintar al filtrar
+    let activePlaylistId = null; // Para saber a qué lista pertenece la canción que queremos borrar
+    let currentPlaylists = []; // Guardará las listas de reproducción cargadas actualmente
 
     // FUNCIONALIDAD CAMBIAR FOTO
     function previewImage(event) {
@@ -374,11 +418,11 @@
         }
     }
 
-    function nav(viewId) {
+    function nav(viewId, preventLoad = false) {
         document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
         document.getElementById(viewId).classList.remove('hidden');
-        if(viewId === 'view-catalog') loadCatalog();
-        if(viewId === 'view-admin') loadPendingUsers();
+        if(viewId === 'view-catalog' && !preventLoad) loadCatalog();
+        if(viewId === 'view-admin' && !preventLoad) loadPendingUsers();
     }
 
     async function apiCall(endpoint, method = 'GET', body = null) {
@@ -426,31 +470,6 @@
 
     function logout() { currentUser = null; nav('view-login'); document.getElementById('form-login').reset(); }
 
-    async function loadCatalog() {
-        document.getElementById('catalog-title').innerText = "Catálogo General";
-        isViewingCatalog = true;
-        document.getElementById('search-input').value = ""; // Limpia el buscador al entrar
-
-        const res = await apiCall('/api/songs');
-        if (res.ok) {
-            currentSongs = res.data; // Guardamos la lista original
-            renderGrid(currentSongs, true);
-        }
-    }
-
-    async function loadFavorites() {
-        document.getElementById('catalog-title').innerText = "Mis Favoritos";
-        isViewingCatalog = false;
-        document.getElementById('search-input').value = ""; // Limpia el buscador al entrar
-
-        const res = await apiCall(`/api/favorites/${currentUser.id}`);
-        if (res.ok) {
-            currentSongs = res.data; // Guardamos la lista original
-            renderGrid(currentSongs, false);
-            nav('view-catalog');
-        }
-    }
-
     // NUEVA FUNCIÓN: Permite buscar al pulsar la tecla "Enter"
     function handleSearchEnter(event) {
         if (event.key === 'Enter') {
@@ -462,9 +481,12 @@
     function filterSongs() {
         const query = document.getElementById('search-input').value.toLowerCase();
 
+        // Determinar en qué contexto estamos (catálogo general o dentro de una lista)
+        const currentContext = activePlaylistId ? 'playlist' : 'general';
+
         // Si el buscador está vacío, volvemos a mostrar todas las canciones
         if (query.trim() === '') {
-            renderGrid(currentSongs, isViewingCatalog);
+            renderGrid(currentSongs, currentContext);
             return;
         }
 
@@ -474,54 +496,289 @@
             s.artist.toLowerCase().includes(query)
         );
 
-        // Renderizamos solo las canciones que coinciden
-        renderGrid(filtered, isViewingCatalog);
+        // Renderizamos solo las canciones que coinciden, manteniendo el contexto
+        renderGrid(filtered, currentContext);
     }
 
     // NUEVA FUNCIÓN: Restaura la lista completa automáticamente si borras todo el texto
     function checkEmptySearch() {
         const query = document.getElementById('search-input').value;
         if (query.trim() === '') {
-            renderGrid(currentSongs, isViewingCatalog);
+            // Pasamos el contexto adecuado dependiendo de si hay una lista activa
+            const currentContext = activePlaylistId ? 'playlist' : 'general';
+            renderGrid(currentSongs, currentContext);
         }
     }
 
-    function renderGrid(songs, isCatalog) {
+    // ==========================================================
+    // LÓGICA DEL GESTOR DE LISTAS PRINCIPAL (NUEVO DISEÑO)
+    // ==========================================================
+    async function loadPlaylistsManager() {
+        nav('view-playlists-manager');
+        const container = document.getElementById('manager-playlist-container');
+        container.innerHTML = '<p style="text-align: center; color: white;">Cargando listas...</p>';
+        document.getElementById('playlist-search-input').value = ""; // Limpiar buscador
+
+        const res = await apiCall(`/api/playlists/${currentUser.id}`);
+        if(res.ok) {
+            currentPlaylists = res.data;
+            await renderPlaylistsManager(currentPlaylists);
+        } else {
+            container.innerHTML = '<p style="text-align: center; color: white; font-weight: bold;">Error al cargar las listas.</p>';
+        }
+    }
+
+    async function renderPlaylistsManager(playlistsToRender) {
+        const container = document.getElementById('manager-playlist-container');
+        container.innerHTML = '';
+
+        if(playlistsToRender.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: white; font-weight: bold; font-size: 18px;">Aún no tienes ninguna lista creada. ¡Pulsa el "+" de arriba para crear una!</p>';
+            return;
+        }
+
+        // Descargamos las canciones de TODAS las listas a la vez para poder rellenar los 6 huecos
+        const playlistsWithSongs = await Promise.all(playlistsToRender.map(async (p) => {
+            const songRes = await apiCall(`/api/playlists/${p.id}/songs`);
+            const songs = songRes.ok ? songRes.data : [];
+            return { ...p, songs };
+        }));
+
+        let html = '<div style="display: flex; flex-wrap: wrap; gap: 20px;">';
+
+        playlistsWithSongs.forEach(p => {
+            let miniGridHtml = '';
+            // Cogemos como máximo las 6 primeras canciones
+            const displaySongs = p.songs.slice(0, 6);
+
+            // Creamos los 6 huecos (si hay canción se muestra la portada, si no, hueco gris/vacío)
+            for(let i = 0; i < 6; i++) {
+                if (i < displaySongs.length) {
+                    const s = displaySongs[i];
+                    const isDefaultCover = s.cover_pic && (s.cover_pic.includes('fotoPersona') || s.cover_pic.includes('fotoCancion'));
+                    let bg = isDefaultCover
+                        ? `url('/static/fotoCancion.png') center/50% no-repeat, linear-gradient(135deg, #2c2c2c 0%, #1a1100 100%)`
+                        : `url('${s.cover_pic}') center/cover no-repeat`;
+
+                    miniGridHtml += `<div style="aspect-ratio: 1; border-radius: 10px; background: ${bg}; border: 1px solid rgba(255,255,255,0.1);"></div>`;
+                } else {
+                    miniGridHtml += `<div style="aspect-ratio: 1; border-radius: 10px; background: rgba(217, 217, 217, 0.8);"></div>`;
+                }
+            }
+
+            // Construimos la caja oscura de la lista con su título, botones y su mini-cuadrícula
+            html += `
+            <div style="background: rgba(30, 20, 0, 0.8); border-radius: 20px; padding: 20px; width: calc(50% - 10px); box-sizing: border-box; border: 1px solid rgba(191, 139, 22, 0.3);">
+                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                      <div style="border: 2px solid white; border-radius: 20px; padding: 5px 20px; color: white; font-weight: bold; max-width: 50%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
+                      <div style="display: flex; gap: 10px;">
+                          <img src="/static/btnVerLista.png" class="icon-btn" style="height: 35px; background: white; border-radius: 50%; padding: 4px; box-sizing: border-box;" onclick="loadPlaylistCatalog(${p.id}, '${p.name}')" title="Ver canciones">
+                          <img src="/static/btnBasura.png" class="icon-btn" style="height: 35px; background: white; border-radius: 50%; padding: 4px; box-sizing: border-box;" onclick="deleteManagerPlaylist(${p.id})" title="Borrar lista">
+                      </div>
+                 </div>
+                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                      ${miniGridHtml}
+                 </div>
+            </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // ==========================================================
+    // BUSCADOR DE LISTAS (Comportamiento unificado)
+    // ==========================================================
+    function handlePlaylistSearchEnter(event) {
+        if (event.key === 'Enter') {
+            filterPlaylists();
+        }
+    }
+
+    function filterPlaylists() {
+        const query = document.getElementById('playlist-search-input').value.toLowerCase();
+
+        // Si el buscador está vacío, volvemos a mostrar todas las listas
+        if (query.trim() === '') {
+            renderPlaylistsManager(currentPlaylists);
+            return;
+        }
+
+        // Filtramos buscando coincidencias en el nombre de la lista
+        const filtered = currentPlaylists.filter(p => p.name.toLowerCase().includes(query));
+        renderPlaylistsManager(filtered);
+    }
+
+    function checkEmptyPlaylistSearch() {
+        const query = document.getElementById('playlist-search-input').value;
+        // Si el usuario borra todo el texto, restauramos la cuadrícula automáticamente
+        if (query.trim() === '') {
+            renderPlaylistsManager(currentPlaylists);
+        }
+    }
+
+    // Controles de la ventanita modal pequeña para crear lista
+    function openCreatePlaylistModal() {
+        document.getElementById('new-playlist-name').value = '';
+        document.getElementById('modal-create-playlist').classList.remove('hidden');
+    }
+
+    function closeCreatePlaylistModal() {
+        document.getElementById('modal-create-playlist').classList.add('hidden');
+    }
+
+    async function createManagerPlaylist() {
+        const nameInput = document.getElementById('new-playlist-name');
+        if(!nameInput.value.trim()) return alert("Por favor, ponle un nombre a la lista.");
+
+        const res = await apiCall(`/api/playlists/${currentUser.id}`, 'POST', { name: nameInput.value });
+        if(res.ok) {
+            closeCreatePlaylistModal();
+            loadPlaylistsManager(); // Recargamos para ver la lista nueva en la cuadrícula
+        } else {
+            alert(res.data.error || "Error al crear la lista");
+        }
+    }
+
+    async function removeSongFromActivePlaylist(songId, playlistId = null) {
+        // Si no pasamos playlistId por parámetro, usamos la activa (para la vista completa)
+        const targetPlaylistId = playlistId || activePlaylistId;
+
+        if (!targetPlaylistId) return;
+
+        if (!confirm("¿Seguro que quieres quitar esta canción de la lista?")) return;
+
+        const res = await apiCall(`/api/playlists/${targetPlaylistId}/songs/${songId}`, 'DELETE');
+
+        if (res.ok) {
+            // Si estamos en la vista completa (activePlaylistId coincide con la borrada)
+            if (activePlaylistId === targetPlaylistId) {
+                const playlistName = document.getElementById('catalog-playlist-title').innerText;
+                loadPlaylistCatalog(targetPlaylistId, playlistName);
+            } else {
+                // Si estamos en el modal del catálogo, solo refrescamos el modal
+                alert("¡Canción eliminada de la lista!");
+                fetchAndRenderPlaylists();
+            }
+        } else {
+            alert(res.data.error || "Error al quitar la canción");
+        }
+    }
+
+    // NUEVA FUNCIÓN: Para cerrar este modal en concreto
+    function closePlaylistSongsModal() {
+        document.getElementById('modal-playlist-songs').classList.add('hidden');
+        activePlaylistId = null;
+    }
+
+    async function deleteManagerPlaylist(playlistId) {
+        if(confirm("¿Seguro que quieres borrar esta lista y todas sus canciones?")) {
+            const res = await apiCall(`/api/playlists/${playlistId}`, 'DELETE');
+            if(res.ok) loadPlaylistsManager();
+        }
+    }
+
+    async function loadCatalog() {
+        isViewingCatalog = true;
+        activePlaylistId = null;
+        document.getElementById('search-input').value = "";
+
+        // CONFIGURACIÓN VISUAL: CATÁLOGO GENERAL
+        document.getElementById('catalog-logo-general').classList.remove('hidden'); // Mostramos León
+        document.getElementById('catalog-title').classList.remove('hidden'); // Mostramos título interior
+        document.getElementById('catalog-playlist-header').classList.add('hidden'); // Ocultamos ojo + título
+        document.getElementById('catalog-back-btn').classList.add('hidden'); // Ocultamos volver
+
+        // ENCENDEMOS LOS ICONOS (Perfil, Corazón, Salir...)
+        document.getElementById('catalog-nav-icons').classList.remove('hidden');
+
+        const res = await apiCall('/api/songs');
+        if (res.ok) {
+            currentSongs = res.data;
+            renderGrid(currentSongs, 'general');
+        }
+    }
+
+    async function loadPlaylistCatalog(playlistId, playlistName) {
+        activePlaylistId = playlistId;
+
+        // CONFIGURACIÓN VISUAL: LISTA PERSONAL
+        document.getElementById('catalog-logo-general').classList.add('hidden'); // Ocultamos León
+        document.getElementById('catalog-title').classList.add('hidden'); // Ocultamos título interior
+
+        // APAGAMOS LOS ICONOS (Perfil, Corazón, Salir...) para dejar solo el buscador
+        document.getElementById('catalog-nav-icons').classList.add('hidden');
+
+        // Mostramos el nuevo header (Ojo + Título) y el botón volver
+        document.getElementById('catalog-playlist-header').classList.remove('hidden');
+        document.getElementById('catalog-playlist-title').innerText = playlistName;
+        document.getElementById('catalog-back-btn').classList.remove('hidden');
+
+        document.getElementById('search-input').value = "";
+
+        nav('view-catalog', true);
+
+        const container = document.getElementById('grid-songs');
+        container.innerHTML = '<p style="text-align: center; color: white;">Cargando canciones...</p>';
+
+        const res = await apiCall(`/api/playlists/${playlistId}/songs`);
+        if (res.ok) {
+            currentSongs = res.data;
+            renderGrid(currentSongs, 'playlist');
+        } else {
+            container.innerHTML = '<p style="text-align:center; color: white; font-weight: bold;">Error al cargar las canciones de la lista.</p>';
+        }
+    }
+
+    // Dibujador de tarjetas inteligente
+    function renderGrid(songs, context) {
         const grid = document.getElementById('grid-songs');
         grid.innerHTML = '';
+
+        if (songs.length === 0) {
+            grid.innerHTML = '<p style="text-align: center; color: white; grid-column: 1/-1;">No hay canciones para mostrar.</p>';
+            return;
+        }
 
         songs.forEach(s => {
             const card = document.createElement('div');
             card.className = 'song-card';
 
-            // Si la canción tiene portada, la ponemos de fondo.
-            if (s.cover_pic) {
-                card.style.backgroundImage = `url('${s.cover_pic}')`;
+            // Comprobamos si tiene una foto real subida
+            if (s.cover_pic && !s.cover_pic.includes('fotoCancion.png') && !s.cover_pic.includes('fotoPersona')) {
+                card.style.background = `url('${s.cover_pic}') center/cover no-repeat`;
+                card.style.border = 'none';
+            } else {
+                card.style.background = `url('/static/fotoCancion.png') center/45% no-repeat, linear-gradient(135deg, #2c2c2c 0%, #1a1100 100%)`;
+                card.style.border = '1px solid rgba(191, 139, 22, 0.3)';
             }
 
-            // Botón inferior izquierdo (+) -> AHORA ABRE EL MODAL DE LISTAS
-            const btnAdd = isCatalog
-                ? `<button class="action-btn-wrapper" onclick="openPlaylistModal(${s.id})">
-                     <img src="/static/btnAniadircancion.png" class="action-icon" style="background: white; border-radius: 50%;">
-                   </button>`
-                : '';
-
-            // Botón inferior derecho (x)
+            // Lógica de botones según el contexto
+            let btnAdd = '';
             let btnDelete = '';
-            if (isCatalog && currentUser.role === 'ADMIN') {
-                btnDelete = `<button class="admin-delete-btn" onclick="deleteSong(${s.id})">
+
+            if (context === 'general') {
+                // En el Catálogo: Mostramos el botón + para añadir a listas
+                btnAdd = `<button class="action-btn-wrapper" onclick="openPlaylistModal(${s.id})">
+                             <img src="/static/btnAniadircancion.png" class="action-icon" style="background: white; border-radius: 50%;">
+                           </button>`;
+                // Y si es ADMIN, mostramos el botón de borrar definitivo
+                if (currentUser && currentUser.role === 'ADMIN') {
+                    btnDelete = `<button class="admin-delete-btn" onclick="deleteSong(${s.id})">
+                                   <img src="/static/btnEliminar.png" class="admin-delete-icon" style="background: white; border-radius: 50%;">
+                                 </button>`;
+                }
+            } else if (context === 'playlist') {
+                // Dentro de una Lista: SOLO mostramos el botón de eliminar (X) de la lista
+                btnDelete = `<button class="admin-delete-btn" onclick="removeSongFromActivePlaylist(${s.id})">
                                <img src="/static/btnEliminar.png" class="admin-delete-icon" style="background: white; border-radius: 50%;">
                              </button>`;
-            } else if (!isCatalog) {
-            btnDelete = `<button class="admin-delete-btn" onclick="removeFavorite(${s.id})">
-                   <img src="/static/btnBasura.png" class="admin-delete-icon" style="background: white; border-radius: 50%;">
-                 </button>`;
-}
+            }
 
-
-            // Contenedor con degradado superior para asegurar legibilidad sin tapar la foto
+            // Inyectamos el HTML de los textos y botones
             card.innerHTML = `
-                <div style="background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); width: 100%; padding: 15px 10px 30px 10px; box-sizing: border-box; border-radius: 15px 15px 0 0; pointer-events: none;">
+                <div style="background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); width: 100%; padding: 15px 10px 30px 10px; box-sizing: border-box; border-radius: 15px 15px 0 0; pointer-events: none; position: relative; z-index: 1;">
                     <div style="font-weight: bold; font-size: 15px; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.title}</div>
                     <div style="font-size: 12px; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ddd; margin-top: 2px;">${s.artist}</div>
                 </div>
@@ -554,19 +811,34 @@
         const container = document.getElementById('playlist-container');
         container.innerHTML = '<p style="text-align: center; color: white;">Cargando listas...</p>';
 
-        const res = await apiCall(`/api/playlists/${currentUser.id}`);
+        // Usamos la ruta que comprueba si la canción seleccionada ya está en las listas
+        let endpoint = `/api/playlists/${currentUser.id}`;
+        if (currentSongToPlaylist) {
+            endpoint = `/api/playlists/${currentUser.id}/check_song/${currentSongToPlaylist}`;
+        }
+
+        const res = await apiCall(endpoint);
         if(res.ok) {
             container.innerHTML = '';
             if(res.data.length === 0) {
-                container.innerHTML = '<p style="text-align:center; font-size: 14px; color: white;">Aún no tienes listas. Crea una abajo.</p>';
+                container.innerHTML = '<p style="text-align:center; font-size: 14px; color: white;">Aún no tienes listas. Créalas desde el panel de Mis listas.</p>';
             } else {
                 res.data.forEach(p => {
-                    // Pintamos cada lista con su botón de añadir (+) y borrar (x)
+                    // Comprobamos si la lista ya contiene la canción seleccionada
+                    let actionBtn = '';
+                    if (p.contains_song === 1) {
+                        // Si está: mostramos el icono de la basura (o X) para QUITARLA
+                        actionBtn = `<img src="/static/btnBasura.png" class="icon-btn" style="height: 35px; background: white; border-radius: 50%; padding: 2px; box-sizing: border-box;" onclick="removeSongFromActivePlaylist(${currentSongToPlaylist}, ${p.id})" title="Quitar de esta lista">`;
+                    } else {
+                        // Si NO está: mostramos el "+" para AÑADIRLA
+                        actionBtn = `<img src="/static/btnAniadircancion.png" class="icon-btn" style="height: 35px; background: white; border-radius: 50%; padding: 2px; box-sizing: border-box;" onclick="addSongToPlaylist(${p.id})" title="Añadir a esta lista">`;
+                    }
+
+                    // Fila hiper-limpia: Solo el nombre de la lista (bloqueado) y el botón de acción
                     container.innerHTML += `
                         <div class="playlist-row">
-                            <input type="text" value="${p.name}" readonly>
-                            <img src="/static/btnAniadircancion.png" class="icon-btn" style="height: 35px; background: white; border-radius: 50%; padding: 2px; box-sizing: border-box;" onclick="addSongToPlaylist(${p.id})">
-                            <img src="/static/btnEliminar.png" class="icon-btn" style="height: 35px; background: white; border-radius: 50%; padding: 2px; box-sizing: border-box;" onclick="deletePlaylist(${p.id})">
+                            <input type="text" value="${p.name}" readonly style="cursor: default;">
+                            ${actionBtn}
                         </div>
                     `;
                 });
@@ -574,25 +846,13 @@
         }
     }
 
-    async function createNewPlaylist() {
-        const nameInput = document.getElementById('new-playlist-name');
-        if(!nameInput.value.trim()) return alert("Por favor, ponle un nombre a la lista.");
-
-        const res = await apiCall(`/api/playlists/${currentUser.id}`, 'POST', { name: nameInput.value });
-        if(res.ok) {
-            nameInput.value = '';
-            fetchAndRenderPlaylists();
-        } else {
-            alert(res.data.error || "Error al crear la lista");
-        }
-    }
 
     async function addSongToPlaylist(playlistId) {
         if(!currentSongToPlaylist) return;
         const res = await apiCall(`/api/playlists/${playlistId}/songs`, 'POST', { song_id: currentSongToPlaylist });
         if(res.ok) {
             alert('¡Canción añadida a la lista!');
-            closePlaylistModal(); // Cerramos el modal al terminar
+            fetchAndRenderPlaylists();
         } else {
             alert(res.data.error || "Error al añadir la canción");
         }
@@ -880,7 +1140,7 @@ async function addSongFull(e) {
 
         // Limpiamos el formulario y la foto para la siguiente vez
         document.getElementById('form-add-song').reset();
-        document.getElementById('song-cover-preview').src = '/static/fotoPersona.png';
+        document.getElementById('song-cover-preview').src = '/static/fotoCancion.png';
 
         // Volvemos al catálogo y lo recargamos
         nav('view-catalog');
@@ -890,19 +1150,6 @@ async function addSongFull(e) {
     }
 }
 
-
-// ==========================================================
-// US-4: BORRAR DE FAVORITOS
-// ==========================================================
-async function removeFavorite(songId) {
-    const res = await apiCall(`/api/favorites/${currentUser.id}/${songId}`, 'DELETE');
-    if (res.ok) {
-        alert("Canción eliminada de favoritos");
-        loadFavorites();
-    } else {
-        alert("Error al eliminar de favoritos");
-    }
-}
 </script>
 </body>
 </html>

@@ -235,7 +235,7 @@ def handle_songs():
         data = request.get_json()
 
         # --- NUEVA LÓGICA: Procesar imagen Base64 de la portada a archivo físico ---
-        raw_cover = data.get('cover_pic', '/static/fotoPersona.png')
+        raw_cover = data.get('cover_pic', '/static/fotoCancion.png')
         db_cover_path = raw_cover  # Por defecto, la ruta o el Base64
 
         if raw_cover and raw_cover.startswith('data:image'):
@@ -429,6 +429,43 @@ def delete_playlist(playlist_id):
     conn.commit()
     conn.close()
     return jsonify({"message": "Lista eliminada correctamente"}), 200
+
+# 5. OBTENER LAS CANCIONES DE UNA LISTA ESPECÍFICA
+@app.route('/api/playlists/<int:playlist_id>/songs', methods=['GET'])
+def get_playlist_songs(playlist_id):
+    conn = get_db_connection()
+    songs = conn.execute('''
+        SELECT s.* FROM songs s
+        JOIN playlist_songs ps ON s.id = ps.song_id
+        WHERE ps.playlist_id = ?
+        ORDER BY ps.added_at DESC
+    ''', (playlist_id,)).fetchall()
+    conn.close()
+    return jsonify([dict(s) for s in songs]), 200
+
+# 6. ELIMINAR UNA CANCIÓN DE UNA LISTA
+@app.route('/api/playlists/<int:playlist_id>/songs/<int:song_id>', methods=['DELETE'])
+def remove_song_from_playlist(playlist_id, song_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM playlist_songs WHERE playlist_id = ? AND song_id = ?', (playlist_id, song_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Canción eliminada de la lista"}), 200
+
+# 7. OBTENER LISTAS CON EL ESTADO DE UNA CANCIÓN ESPECÍFICA (Saber si ya está dentro)
+@app.route('/api/playlists/<int:user_id>/check_song/<int:song_id>', methods=['GET'])
+def get_playlists_with_song_status(user_id, song_id):
+    conn = get_db_connection()
+    # Usamos LEFT JOIN para obtener un 1 o 0 si la canción está dentro de cada lista
+    playlists = conn.execute('''
+        SELECT p.*, 
+               CASE WHEN ps.song_id IS NOT NULL THEN 1 ELSE 0 END as contains_song
+        FROM playlists p
+        LEFT JOIN playlist_songs ps ON p.id = ps.playlist_id AND ps.song_id = ?
+        WHERE p.user_id = ?
+    ''', (song_id, user_id)).fetchall()
+    conn.close()
+    return jsonify([dict(p) for p in playlists]), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

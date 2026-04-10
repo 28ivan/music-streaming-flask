@@ -45,9 +45,10 @@ CREATE TABLE favorites (
 CREATE TABLE playlists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
-    name TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    UNIQUE(user_id, name)
 );
 
 -- Tabla intermedia para asociar canciones a las listas
