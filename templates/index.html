@@ -877,20 +877,25 @@
 
             // Añadimos IDs específicos (prof-name, prof-sur1, etc.) a cada input
             document.getElementById('profile-data').innerHTML = `
-                <div class="flex-row">
-                    <div class="col-1"><input type="text" id="prof-name" value="${d.name}" readonly></div>
-                    <div class="col-1-5"><input type="text" id="prof-sur1" value="${d.surname1}" readonly></div>
-                    <div class="col-1-5"><input type="text" id="prof-sur2" value="${d.surname2 || ''}" readonly></div>
+            <div class="flex-row">
+                <div class="col-1"><input type="text" id="prof-name" value="${d.name}" readonly></div>
+                <div class="col-1-5"><input type="text" id="prof-sur1" value="${d.surname1}" readonly></div>
+                <div class="col-1-5"><input type="text" id="prof-sur2" value="${d.surname2 || ''}" readonly></div>
+            </div>
+            <div class="flex-row">
+                <div class="col-half"><input type="text" id="prof-user" value="${d.username}" readonly></div>
+                <div class="col-half"><input type="date" id="prof-date" value="${d.birth_date}" readonly style="color: white;"></div>
+            </div>
+            <div class="flex-row" style="align-items: stretch;">
+                <div class="col-half" style="display: flex; flex-direction: column; gap: 15px;">
+                    <input type="email" id="prof-email" value="${d.email}" readonly>
+                    <div id="password-edit-container" class="hidden">
+                        <input type="password" id="prof-pass" placeholder="Nueva contraseña">
+                    </div>
                 </div>
-                <div class="flex-row">
-                    <div class="col-half"><input type="text" id="prof-user" value="${d.username}" readonly></div>
-                    <div class="col-half"><input type="date" id="prof-date" value="${d.birth_date}" readonly style="color: white;"></div>
-                </div>
-                <div class="flex-row" style="align-items: stretch;">
-                    <div class="col-half"><input type="email" id="prof-email" value="${d.email}" readonly></div>
-                    <div class="col-half"><textarea id="prof-desc" readonly>${d.description || ''}</textarea></div>
-                </div>
-            `;
+                <div class="col-half"><textarea id="prof-desc" readonly>${d.description || ''}</textarea></div>
+            </div>
+        `;
 
             // Reiniciamos los botones al estado de "solo lectura" cada vez que se carga el perfil
             document.getElementById('btn-edit-profile').classList.remove('hidden');
@@ -946,6 +951,9 @@
                 input.style.border = "2px solid var(--gold)"; // Resaltamos en dorado lo que se puede editar
             }
         });
+
+        // Mostramos el contenedor de la contraseña al editar ---
+        document.getElementById('password-edit-container').classList.remove('hidden');
         // Ocultamos "EDITAR" y mostramos "GUARDAR"
         document.getElementById('btn-edit-profile').classList.add('hidden');
         document.getElementById('btn-save-profile').classList.remove('hidden');
@@ -963,7 +971,8 @@
             surname1: document.getElementById('prof-sur1').value,
             surname2: document.getElementById('prof-sur2').value,
             birth_date: document.getElementById('prof-date').value,
-            description: document.getElementById('prof-desc').value
+            description: document.getElementById('prof-desc').value,
+            password: document.getElementById('prof-pass').value
         };
 
         // 1. Guardar los datos de texto

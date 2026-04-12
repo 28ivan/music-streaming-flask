@@ -140,6 +140,7 @@ def update_profile(user_id):
     surname2 = data.get('surname2')
     birth_date = data.get('birth_date')
     description = data.get('description')
+    password = data.get('password')
 
     # Validación básica (obligatorios según tu schema)
     if not name or not surname1 or not birth_date:
@@ -158,6 +159,11 @@ def update_profile(user_id):
                            description = ?
                        WHERE id = ?
                        ''', (name, surname1, surname2, birth_date, description, user_id))
+
+        # 2. Si el usuario escribió algo en el campo password, la actualizamos hasheada
+        if password and password.strip() != "":
+            new_hash = generate_password_hash(password)
+            cursor.execute('UPDATE users SET password_hash = ? WHERE id = ?', (new_hash, user_id))
 
         conn.commit()
 

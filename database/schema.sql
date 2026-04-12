@@ -47,7 +47,7 @@ CREATE TABLE playlists (
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, name)
 );
 
