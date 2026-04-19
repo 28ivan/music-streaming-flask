@@ -291,13 +291,42 @@ def handle_songs():
             conn.close()
 
 
+# ==========================================================
+# ENDPOINT: Obtener detalles de UNA canción (NUEVO)
+# ==========================================================
+@app.route('/api/songs/<int:song_id>', methods=['GET'])
+def get_song_details(song_id):
+    conn = get_db_connection()
+    # Buscamos todos los campos de la canción por su ID
+    song = conn.execute('SELECT * FROM songs WHERE id = ?', (song_id,)).fetchone()
+    conn.close()
+
+    if song:
+        # Si existe, la convertimos a diccionario y la enviamos como JSON
+        return jsonify(dict(song)), 200
+    else:
+        # Si no existe, devolvemos un error 404
+        return jsonify({"error": "Canción no encontrada"}), 404
+
+
 @app.route('/api/songs/<int:song_id>', methods=['DELETE'])
 def delete_song(song_id):
     conn = get_db_connection()
+
+    # NUEVA LÓGICA: Comprobar si la canción está en alguna lista de reproducción
+    # Contamos cuántas veces aparece esta canción en la tabla intermedia de listas
+    in_playlists = conn.execute('SELECT COUNT(*) as count FROM playlist_songs WHERE song_id = ?', (song_id,)).fetchone()
+
+    # Si la cuenta es mayor a 0, detenemos la eliminación y enviamos un error 409 (Conflicto)
+    if in_playlists['count'] > 0:
+        conn.close()
+        return jsonify({"error": "No se puede eliminar: Esta canción está incluida en al menos una lista de reproducción de un usuario."}), 409
+
+    # Si no está en ninguna lista, procedemos a borrarla del catálogo general
     conn.execute('DELETE FROM songs WHERE id = ?', (song_id,))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Canción eliminada"}), 200
+    return jsonify({"message": "Canción eliminada del catálogo"}), 200
 
 
 @app.route('/api/favorites/<int:user_id>', methods=['GET', 'POST', 'DELETE'])

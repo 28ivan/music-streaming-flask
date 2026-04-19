@@ -133,6 +133,39 @@
             min-width: 0;
             line-height: 1.2;
         }
+
+        /* Estilo para los labels del boceto cite: 10-Información Canción.png */
+        .info-label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            margin-left: 15px;
+            text-align: left;
+            color: white;
+        }
+
+        /* Ajuste para que los inputs readonly se vean limpios y cuadrados cite: 10-Información Canción.png */
+        #view-song-info input[readonly],
+        #view-song-info textarea[readonly] {
+            border: 2px solid white !important;
+            background: transparent !important;
+            color: white !important;
+            border-radius: 25px;
+            padding: 10px 20px;
+            cursor: default;
+        }
+
+        /* Recuadro gris para la carátula vacía cite: 10-Información Canción.png */
+        .cover-placeholder {
+            background-color: #d9d9d9;
+            border-radius: 20px;
+            width: 100%;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -347,6 +380,77 @@
                 </form>
             </div>
         </div>
+    </div>
+</div>
+
+<div id="view-song-info" class="view hidden" style="margin-top: 0; max-width: 1050px;">
+
+    <div style="display: flex; align-items: center; margin-bottom: 30px; gap: 20px;">
+        <img src="/static/leon-removebg-preview.png" class="logo-nav">
+        <h2 id="info-header-title" style="font-size: 42px; margin: 0; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Nombre canción</h2>
+    </div>
+
+    <div style="display: flex; gap: 40px; align-items: center;">
+
+        <div style="width: 250px; flex-shrink: 0;">
+            <div id="info-song-cover-container" style="background-color: #d9d9d9; border-radius: 25px; width: 100%; aspect-ratio: 1; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <img src="" id="info-song-cover" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+            </div>
+        </div>
+
+        <div class="panel-oscuro" style="flex: 1; padding: 35px; border-radius: 25px; background: rgba(30, 20, 0, 0.8);">
+
+            <div class="flex-row">
+                <div class="col-2">
+                    <label class="info-label">Nombre de la canción</label>
+                    <input type="text" id="info-song-title" readonly>
+                </div>
+                <div class="col-2">
+                    <label class="info-label">Album</label>
+                    <input type="text" id="info-song-album" readonly>
+                </div>
+                <div class="col-1">
+                    <label class="info-label">Nº track</label>
+                    <input type="text" id="info-song-track" readonly>
+                </div>
+            </div>
+
+            <div class="flex-row">
+                <div class="col-2">
+                    <label class="info-label">Artista</label>
+                    <input type="text" id="info-song-artist" readonly>
+                </div>
+                <div class="col-2">
+                    <label class="info-label">Año publicación</label>
+                    <input type="text" id="info-song-year" readonly>
+                </div>
+                <div class="col-1">
+                    <label class="info-label">Duración</label>
+                    <input type="text" id="info-song-duration" readonly>
+                </div>
+            </div>
+
+            <div class="flex-row" style="margin-top: 15px; align-items: stretch;">
+
+                <div class="col-half" style="display: flex; flex-direction: column;">
+                    <label class="info-label" style="margin-left: 15px; margin-bottom: 8px;">Guardada en:</label>
+                    <div style="border: 2px solid white; border-radius: 25px; padding: 15px; flex: 1; overflow-y: auto; min-height: 100px;">
+                        <ul id="info-song-playlists" style="margin: 0; padding-left: 20px; color: white; font-weight: bold; list-style-type: disc; font-size: 14px;">
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-half" style="display: flex; flex-direction: column;">
+                    <label class="info-label" style="margin-left: 15px; margin-bottom: 8px;">Descripción</label>
+                    <textarea id="info-song-description" readonly style="flex: 1; border: 2px solid white; border-radius: 25px; padding: 15px; background: transparent; color: white;"></textarea>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px;">
+        <img src="/static/btnVolver.png" class="btn-volver" style="height: 65px;" onclick="backToCatalog()">
     </div>
 </div>
 
@@ -702,6 +806,7 @@
 
     async function loadPlaylistCatalog(playlistId, playlistName) {
         activePlaylistId = playlistId;
+        currentPlaylistName = playlistName; // Aseguramos que se guarde el nombre
 
         // CONFIGURACIÓN VISUAL: LISTA PERSONAL
         document.getElementById('catalog-logo-general').classList.add('hidden'); // Ocultamos León
@@ -731,7 +836,7 @@
         }
     }
 
-    // Dibujador de tarjetas inteligente
+    // MODIFICADA: Ahora las tarjetas son clickeablescite: 10-Información Canción.png
     function renderGrid(songs, context) {
         const grid = document.getElementById('grid-songs');
         grid.innerHTML = '';
@@ -744,8 +849,10 @@
         songs.forEach(s => {
             const card = document.createElement('div');
             card.className = 'song-card';
+            // Añadimos cursor pointer para indicar que es clickeable
+            card.style.cursor = 'pointer';
 
-            // Comprobamos si tiene una foto real subida
+            // Lógica de fondo existente
             if (s.cover_pic && !s.cover_pic.includes('fotoCancion.png') && !s.cover_pic.includes('fotoPersona')) {
                 card.style.background = `url('${s.cover_pic}') center/cover no-repeat`;
                 card.style.border = 'none';
@@ -754,29 +861,32 @@
                 card.style.border = '1px solid rgba(191, 139, 22, 0.3)';
             }
 
-            // Lógica de botones según el contexto
+            // --- NUEVO: Evento click en la tarjeta para cargar info cite: 10-Información Canción.png ---
+            card.onclick = () => loadSongInfo(s.id);
+
+            // Lógica de botones existente, pero añadiendo stopPropagation()
             let btnAdd = '';
             let btnDelete = '';
 
             if (context === 'general') {
-                // En el Catálogo: Mostramos el botón + para añadir a listas
-                btnAdd = `<button class="action-btn-wrapper" onclick="openPlaylistModal(${s.id})">
+                // MODIFICADO: Añadir event.stopPropagation() cite: 10-Información Canción.png
+                btnAdd = `<button class="action-btn-wrapper" onclick="event.stopPropagation(); openPlaylistModal(${s.id})">
                              <img src="/static/btnAniadircancion.png" class="action-icon" style="background: white; border-radius: 50%;">
                            </button>`;
-                // Y si es ADMIN, mostramos el botón de borrar definitivo
                 if (currentUser && currentUser.role === 'ADMIN') {
-                    btnDelete = `<button class="admin-delete-btn" onclick="deleteSong(${s.id})">
-                                   <img src="/static/btnEliminar.png" class="admin-delete-icon" style="background: white; border-radius: 50%;">
+                    // MODIFICADO: Añadir event.stopPropagation() cite: 10-Información Canción.png
+                    btnDelete = `<button class="admin-delete-btn" onclick="event.stopPropagation(); deleteSong(${s.id})">
+                                   <img src="/static/btnEliminar.png" class="action-icon" style="background: white; border-radius: 50%;">
                                  </button>`;
                 }
             } else if (context === 'playlist') {
-                // Dentro de una Lista: SOLO mostramos el botón de eliminar (X) de la lista
-                btnDelete = `<button class="admin-delete-btn" onclick="removeSongFromActivePlaylist(${s.id})">
-                               <img src="/static/btnEliminar.png" class="admin-delete-icon" style="background: white; border-radius: 50%;">
+                // MODIFICADO: Añadir event.stopPropagation() cite: 10-Información Canción.png
+                btnDelete = `<button class="admin-delete-btn" onclick="event.stopPropagation(); removeSongFromActivePlaylist(${s.id})">
+                               <img src="/static/btnEliminar.png" class="action-icon" style="background: white; border-radius: 50%;">
                              </button>`;
             }
 
-            // Inyectamos el HTML de los textos y botones
+            // Inyección de HTML existente
             card.innerHTML = `
                 <div style="background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); width: 100%; padding: 15px 10px 30px 10px; box-sizing: border-box; border-radius: 15px 15px 0 0; pointer-events: none; position: relative; z-index: 1;">
                     <div style="font-weight: bold; font-size: 15px; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.title}</div>
@@ -788,6 +898,53 @@
 
             grid.appendChild(card);
         });
+    }
+
+    // ==========================================================
+    // LÓGICA: Cargar información detallada de una canción
+    // ==========================================================
+    // Cargar información de la canción
+    async function loadSongInfo(songId) {
+        const resSong = await apiCall(`/api/songs/${songId}`);
+        if (resSong.ok) {
+            const s = resSong.data;
+            document.getElementById('info-header-title').innerText = s.title;
+
+            // Lógica de la imagen: Ocultar o Mostrar
+            const imgEl = document.getElementById('info-song-cover');
+            // Comprobamos si tiene foto real
+            if (s.cover_pic && !s.cover_pic.includes('fotoCancion.png') && !s.cover_pic.includes('fotoPersona')) {
+                imgEl.src = s.cover_pic;
+                imgEl.style.display = 'block'; // Mostramos la foto
+            } else {
+                imgEl.src = '';
+                imgEl.style.display = 'none'; // Ocultamos el tag <img> para dejar ver el fondo gris #d9d9d9
+            }
+
+            // Rellenar textos
+            document.getElementById('info-song-title').value = s.title;
+            document.getElementById('info-song-artist').value = s.artist;
+            document.getElementById('info-song-album').value = s.album || '';
+            document.getElementById('info-song-year').value = s.release_year || '';
+            document.getElementById('info-song-track').value = s.track_number || '';
+            document.getElementById('info-song-duration').value = s.duration_seconds || '';
+            document.getElementById('info-song-description').value = s.song_description || '';
+
+            // Listas
+            const listUl = document.getElementById('info-song-playlists');
+            listUl.innerHTML = '<li>Buscando...</li>';
+
+            const resPlaylists = await apiCall(`/api/playlists/${currentUser.id}/check_song/${songId}`);
+            if (resPlaylists.ok) {
+                const filtered = resPlaylists.data.filter(p => p.contains_song === 1);
+                listUl.innerHTML = filtered.length > 0
+                    ? filtered.map(p => `<li>${p.name}</li>`).join('')
+                    : '<li style="list-style:none; font-weight:normal; margin-left:-20px; opacity:0.7;">No está en ninguna lista</li>';
+            }
+
+            // Usamos nav para mostrar la vista
+            nav('view-song-info', true);
+        }
     }
 
     // ==========================================================
@@ -1020,7 +1177,21 @@
     }
 
     async function deleteSong(id) {
-        if(confirm("¿Borrar canción?")) { await apiCall(`/api/songs/${id}`, 'DELETE'); loadCatalog(); }
+        // 1. Pedimos confirmación al administrador
+        if(confirm("¿Seguro que quieres borrar esta canción del catálogo general?")) {
+
+            // 2. Hacemos la petición de borrado al backend
+            const res = await apiCall(`/api/songs/${id}`, 'DELETE');
+
+            if (res.ok) {
+                // Si el backend la borró con éxito, recargamos la vista
+                loadCatalog();
+            } else {
+                // Si el backend la bloqueó (porque está en una lista), mostramos el popup de aviso
+                // Usamos res.data.error porque apiCall guarda el JSON devuelto dentro de "data"
+                alert("Operación denegada:\n\n" + res.data.error);
+            }
+        }
     }
 
     async function loadPendingUsers() {
@@ -1075,6 +1246,17 @@
             container.innerHTML = "<p>Error al cargar usuarios.</p>";
         }
     } // <-- Aquí se cierra loadPendingUsers
+
+    // 3. Arreglamos el botón VOLVER cite: 10-Información Canción.png
+    function backToCatalog() {
+        if (activePlaylistId) {
+            // Si estábamos dentro de una lista, volvemos a la vista de esa lista
+            loadPlaylistCatalog(activePlaylistId, currentPlaylistName);
+        } else {
+            // Si estábamos en el catálogo general, volvemos a él
+            nav('view-catalog');
+        }
+    }
 
     async function approveUser(userId) {
         if (confirm("¿Estás seguro de que quieres aprobar a este usuario?")) {
