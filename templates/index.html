@@ -390,12 +390,21 @@
         <h2 id="info-header-title" style="font-size: 42px; margin: 0; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Nombre canción</h2>
     </div>
 
-    <div style="display: flex; gap: 40px; align-items: center;">
+    <div style="display: flex; gap: 40px; align-items: flex-start;">
+        <div style="width: 250px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 15px;">
 
-        <div style="width: 250px; flex-shrink: 0;">
-            <div id="info-song-cover-container" style="background-color: #d9d9d9; border-radius: 25px; width: 100%; aspect-ratio: 1; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-                <img src="" id="info-song-cover" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+            <div style="background: rgba(30, 20, 0, 0.8); padding: 20px; border-radius: 25px; width: 100%; box-sizing: border-box;">
+                <div id="info-song-cover-container" style="background-color: #d9d9d9; border-radius: 20px; width: 100%; aspect-ratio: 1; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    <img src="" id="info-song-cover" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                </div>
             </div>
+
+            <input type="file" id="info-song-cover-input" accept="image/*" class="hidden" onchange="previewEditSongCover(event)">
+
+            <button id="btn-change-song-cover" class="btn-outline-gold hidden" style="padding: 8px 10px; font-size: 14px; width: 100%;" onclick="document.getElementById('info-song-cover-input').click()">Cambiar carátula</button>
+
+            <button id="btn-edit-song" class="btn-outline-gold hidden" onclick="enableSongEditMode()" style="width: 100%;">EDITAR</button>
+            <button id="btn-save-song" class="btn-solid hidden" onclick="saveSongInfo()" style="width: 100%;">GUARDAR</button>
         </div>
 
         <div class="panel-oscuro" style="flex: 1; padding: 35px; border-radius: 25px; background: rgba(30, 20, 0, 0.8);">
@@ -449,7 +458,7 @@
         </div>
     </div>
 
-    <div style="margin-top: 30px;">
+    <div style="margin-top: 30px; display: flex; justify-content: flex-start;">
         <img src="/static/btnVolver.png" class="btn-volver" style="height: 65px;" onclick="backToCatalog()">
     </div>
 </div>
@@ -901,53 +910,6 @@
     }
 
     // ==========================================================
-    // LÓGICA: Cargar información detallada de una canción
-    // ==========================================================
-    // Cargar información de la canción
-    async function loadSongInfo(songId) {
-        const resSong = await apiCall(`/api/songs/${songId}`);
-        if (resSong.ok) {
-            const s = resSong.data;
-            document.getElementById('info-header-title').innerText = s.title;
-
-            // Lógica de la imagen: Ocultar o Mostrar
-            const imgEl = document.getElementById('info-song-cover');
-            // Comprobamos si tiene foto real
-            if (s.cover_pic && !s.cover_pic.includes('fotoCancion.png') && !s.cover_pic.includes('fotoPersona')) {
-                imgEl.src = s.cover_pic;
-                imgEl.style.display = 'block'; // Mostramos la foto
-            } else {
-                imgEl.src = '';
-                imgEl.style.display = 'none'; // Ocultamos el tag <img> para dejar ver el fondo gris #d9d9d9
-            }
-
-            // Rellenar textos
-            document.getElementById('info-song-title').value = s.title;
-            document.getElementById('info-song-artist').value = s.artist;
-            document.getElementById('info-song-album').value = s.album || '';
-            document.getElementById('info-song-year').value = s.release_year || '';
-            document.getElementById('info-song-track').value = s.track_number || '';
-            document.getElementById('info-song-duration').value = s.duration_seconds || '';
-            document.getElementById('info-song-description').value = s.song_description || '';
-
-            // Listas
-            const listUl = document.getElementById('info-song-playlists');
-            listUl.innerHTML = '<li>Buscando...</li>';
-
-            const resPlaylists = await apiCall(`/api/playlists/${currentUser.id}/check_song/${songId}`);
-            if (resPlaylists.ok) {
-                const filtered = resPlaylists.data.filter(p => p.contains_song === 1);
-                listUl.innerHTML = filtered.length > 0
-                    ? filtered.map(p => `<li>${p.name}</li>`).join('')
-                    : '<li style="list-style:none; font-weight:normal; margin-left:-20px; opacity:0.7;">No está en ninguna lista</li>';
-            }
-
-            // Usamos nav para mostrar la vista
-            nav('view-song-info', true);
-        }
-    }
-
-    // ==========================================================
     // LÓGICA DE LISTAS DE REPRODUCCIÓN (US-4)
     // ==========================================================
     let currentSongToPlaylist = null; // Guarda qué canción vamos a añadir
@@ -1283,63 +1245,209 @@
     }
 
     // ==========================================================
-// PREVISUALIZACIÓN DE LA PORTADA
-// ==========================================================
-function handleSongCoverPreview(input) {
-    if (!input.files || !input.files[0]) return;
+    // PREVISUALIZACIÓN DE LA PORTADA
+    // ==========================================================
+    function handleSongCoverPreview(input) {
+        if (!input.files || !input.files[0]) return;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        // Asignamos el Base64 a la imagen del HTML para que el admin la vea
-        document.getElementById('song-cover-preview').src = e.target.result;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Asignamos el Base64 a la imagen del HTML para que el admin la vea
+            document.getElementById('song-cover-preview').src = e.target.result;
+        }
+        reader.readAsDataURL(input.files[0]);
     }
-    reader.readAsDataURL(input.files[0]);
-}
 
-// ==========================================================
-// US-6: AÑADIR CANCIÓN COMPLETO (ADMIN) - ACTUALIZADO CON FOTO
-// ==========================================================
-async function addSongFull(e) {
-    e.preventDefault();
+    // ==========================================================
+    // US-6: AÑADIR CANCIÓN COMPLETO (ADMIN) - ACTUALIZADO CON FOTO
+    // ==========================================================
+    async function addSongFull(e) {
+        e.preventDefault();
 
-    // UI Feedback para evitar doble clic
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = "Guardando...";
-    submitBtn.disabled = true;
+        // UI Feedback para evitar doble clic
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = "Guardando...";
+        submitBtn.disabled = true;
 
-    // Recogemos todos los campos, incluyendo la ruta Base64 de la previsualización
-    const body = {
-        title: document.getElementById('song-title').value,
-        artist: document.getElementById('song-artist').value,
-        album: document.getElementById('song-album').value,
-        duration_seconds: document.getElementById('song-duration').value,
-        track_number: document.getElementById('song-track').value,
-        release_year: document.getElementById('song-year').value,
-        song_description: document.getElementById('song-description').value,
-        cover_pic: document.getElementById('song-cover-preview').src
-    };
+        // Recogemos todos los campos, incluyendo la ruta Base64 de la previsualización
+        const body = {
+            title: document.getElementById('song-title').value,
+            artist: document.getElementById('song-artist').value,
+            album: document.getElementById('song-album').value,
+            duration_seconds: document.getElementById('song-duration').value,
+            track_number: document.getElementById('song-track').value,
+            release_year: document.getElementById('song-year').value,
+            song_description: document.getElementById('song-description').value,
+            cover_pic: document.getElementById('song-cover-preview').src
+        };
 
-    const res = await apiCall('/api/songs', 'POST', body);
+        const res = await apiCall('/api/songs', 'POST', body);
 
-    // Restauramos el botón
-    submitBtn.textContent = originalText;
-    submitBtn.disabled = false;
+        // Restauramos el botón
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
 
-    if (res.ok) {
-        alert("Canción añadida correctamente");
+        if (res.ok) {
+            alert("Canción añadida correctamente");
 
-        // Limpiamos el formulario y la foto para la siguiente vez
-        document.getElementById('form-add-song').reset();
-        document.getElementById('song-cover-preview').src = '/static/fotoCancion.png';
+            // Limpiamos el formulario y la foto para la siguiente vez
+            document.getElementById('form-add-song').reset();
+            document.getElementById('song-cover-preview').src = '/static/fotoCancion.png';
 
-        // Volvemos al catálogo y lo recargamos
-        nav('view-catalog');
-        loadCatalog();
-    } else {
-        alert("Error al añadir canción: " + res.error);
+            // Volvemos al catálogo y lo recargamos
+            nav('view-catalog');
+            loadCatalog();
+        } else {
+            alert("Error al añadir canción: " + res.error);
+        }
     }
-}
+
+    // NUEVA VARIABLE GLOBAL PARA EDITAR CANCIONES
+    let currentViewedSongId = null;
+    let pendingSongCoverBase64 = null;
+
+    // ==========================================================
+    // LÓGICA: Cargar información detallada de una canción (MODIFICADA)
+    // ==========================================================
+    async function loadSongInfo(songId) {
+        currentViewedSongId = songId; // Guardamos el ID de la canción abierta
+        pendingSongCoverBase64 = null; // Reiniciamos la foto pendiente
+        document.getElementById('info-song-cover-input').value = ""; // Limpiamos input de archivo
+
+        const resSong = await apiCall(`/api/songs/${songId}`);
+        if (resSong.ok) {
+            const s = resSong.data;
+            document.getElementById('info-header-title').innerText = s.title;
+
+            // Lógica de la imagen
+            const imgEl = document.getElementById('info-song-cover');
+            if (s.cover_pic && !s.cover_pic.includes('fotoCancion.png') && !s.cover_pic.includes('fotoPersona')) {
+                imgEl.src = s.cover_pic;
+                imgEl.style.display = 'block';
+            } else {
+                imgEl.src = '';
+                imgEl.style.display = 'none';
+            }
+
+            // Rellenar textos
+            document.getElementById('info-song-title').value = s.title;
+            document.getElementById('info-song-artist').value = s.artist;
+            document.getElementById('info-song-album').value = s.album || '';
+            document.getElementById('info-song-year').value = s.release_year || '';
+            document.getElementById('info-song-track').value = s.track_number || '';
+            document.getElementById('info-song-duration').value = s.duration_seconds || '';
+            document.getElementById('info-song-description').value = s.song_description || '';
+
+            // Bloquear todos los inputs al entrar y resetear sus bordes (Modo Sólo Lectura)
+            const inputs = document.querySelectorAll('#view-song-info input[type="text"], #view-song-info textarea');
+            inputs.forEach(input => {
+                input.setAttribute('readonly', true);
+                input.style.border = "2px solid white";
+            });
+
+            // Lógica de botones de edición
+            document.getElementById('btn-save-song').classList.add('hidden');
+            document.getElementById('btn-change-song-cover').classList.add('hidden');
+
+            // Si el usuario es ADMIN, mostramos el botón EDITAR
+            if (currentUser && currentUser.role === 'ADMIN') {
+                document.getElementById('btn-edit-song').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-edit-song').classList.add('hidden');
+            }
+
+            // Listas
+            const listUl = document.getElementById('info-song-playlists');
+            listUl.innerHTML = '<li>Buscando...</li>';
+
+            const resPlaylists = await apiCall(`/api/playlists/${currentUser.id}/check_song/${songId}`);
+            if (resPlaylists.ok) {
+                const filtered = resPlaylists.data.filter(p => p.contains_song === 1);
+                listUl.innerHTML = filtered.length > 0
+                    ? filtered.map(p => `<li>${p.name}</li>`).join('')
+                    : '<li style="list-style:none; font-weight:normal; margin-left:-20px; opacity:0.7;">No está en ninguna lista</li>';
+            }
+
+            nav('view-song-info', true);
+        }
+    }
+
+    // ==========================================================
+    // LÓGICA: Editar y Guardar Canción (NUEVO)
+    // ==========================================================
+    function enableSongEditMode() {
+        // Desbloquear campos y pintar los bordes de color dorado
+        const inputs = document.querySelectorAll('#view-song-info input[type="text"], #view-song-info textarea');
+        inputs.forEach(input => {
+            input.removeAttribute('readonly');
+            input.style.border = "2px solid var(--gold)";
+        });
+
+        // Intercambiar botones
+        document.getElementById('btn-edit-song').classList.add('hidden');
+        document.getElementById('btn-save-song').classList.remove('hidden');
+        document.getElementById('btn-change-song-cover').classList.remove('hidden');
+    }
+
+    function previewEditSongCover(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                pendingSongCoverBase64 = e.target.result;
+                const imgEl = document.getElementById('info-song-cover');
+                imgEl.src = pendingSongCoverBase64;
+                imgEl.style.display = 'block'; // Aseguramos que se vea aunque antes no tuviera carátula
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    async function saveSongInfo() {
+        if (!currentViewedSongId) return;
+
+        // UI Feedback
+        const saveBtn = document.getElementById('btn-save-song');
+        const originalText = saveBtn.innerText;
+        saveBtn.innerText = "GUARDANDO...";
+        saveBtn.disabled = true;
+
+        const body = {
+            title: document.getElementById('info-song-title').value,
+            artist: document.getElementById('info-song-artist').value,
+            album: document.getElementById('info-song-album').value,
+            track_number: document.getElementById('info-song-track').value,
+            release_year: document.getElementById('info-song-year').value,
+            duration_seconds: document.getElementById('info-song-duration').value,
+            song_description: document.getElementById('info-song-description').value,
+        };
+
+        // Si se seleccionó una foto nueva, la añadimos al body
+        if (pendingSongCoverBase64) {
+            body.cover_pic = pendingSongCoverBase64;
+        }
+
+        const res = await apiCall(`/api/songs/${currentViewedSongId}`, 'PUT', body);
+
+        // Restaurar botón
+        saveBtn.innerText = originalText;
+        saveBtn.disabled = false;
+
+        if (res.ok) {
+            alert("Canción actualizada correctamente");
+
+            // Recargamos el catálogo general en segundo plano para que la cuadrícula también se actualice
+            if(isViewingCatalog && !activePlaylistId) {
+                 apiCall('/api/songs').then(r => { if(r.ok) currentSongs = r.data; });
+            }
+
+            // Recargamos la información de la canción para restaurar la vista al modo Sólo Lectura
+            loadSongInfo(currentViewedSongId);
+        } else {
+            alert("Error al actualizar la canción: " + (res.data.error || ""));
+        }
+    }
 
 </script>
 </body>

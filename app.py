@@ -502,5 +502,73 @@ def get_playlists_with_song_status(user_id, song_id):
     conn.close()
     return jsonify([dict(p) for p in playlists]), 200
 
+
+# ==========================================================
+# ENDPOINT: Actualizar información de UNA canción (NUEVO)
+# ==========================================================
+@app.route('/api/songs/<int:song_id>', methods=['PUT'])
+def update_song(song_id):
+    data = request.get_json()
+
+    # Extraemos datos básicos obligatorios y opcionales
+    title = data.get('title')
+    artist = data.get('artist')
+    album = data.get('album')
+    duration_seconds = data.get('duration_seconds')
+    track_number = data.get('track_number')
+    release_year = data.get('release_year')
+    song_description = data.get('song_description')
+
+    if not title or not artist:
+        return jsonify({"error": "El Título y el Artista son obligatorios"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Recuperamos la portada actual por si el admin no ha subido una nueva
+        current_song = cursor.execute('SELECT cover_pic FROM songs WHERE id = ?', (song_id,)).fetchone()
+        if not current_song:
+            return jsonify({"error": "Canción no encontrada"}), 404
+
+        db_cover_path = current_song['cover_pic']
+
+        # --- LÓGICA: Procesar nueva imagen Base64 a archivo físico ---
+        raw_cover = data.get('cover_pic')
+        if raw_cover and raw_cover.startswith('data:image'):
+            try:
+                header, encoded = raw_cover.split(",", 1)
+                ext = header.split(';')[0].split('/')[1]
+                file_data = base64.b64decode(encoded)
+
+                filename = f"cover_{uuid.uuid4().hex[:8]}.{ext}"
+                filepath = os.path.join(app.config['COVERS_UPLOAD_FOLDER'], filename)
+
+                with open(filepath, "wb") as f:
+                    f.write(file_data)
+
+                db_cover_path = f"/static/uploads/covers/{filename}"
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+        # -------------------------------------------------------------
+
+        # Ejecutamos la actualización SQL
+        cursor.execute('''
+            UPDATE songs
+            SET title = ?, artist = ?, album = ?, duration_seconds = ?,
+                track_number = ?, release_year = ?, song_description = ?, cover_pic = ?
+            WHERE id = ?
+        ''', (title, artist, album, duration_seconds, track_number, release_year, song_description, db_cover_path,
+              song_id))
+
+        conn.commit()
+        return jsonify({"message": "Información de la canción actualizada correctamente"}), 200
+
+    except sqlite3.Error as e:
+        return jsonify({"error": f"Error de base de datos: {str(e)}"}), 500
+    finally:
+        conn.close()
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
