@@ -1,0 +1,8 @@
+database/music.sqlite
+static/uploads/
+__pycache__/
+*.pyc
+venv/
+.env
+.idea/
+.vscode/
